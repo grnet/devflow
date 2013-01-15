@@ -1,0 +1,25 @@
+devflow
+========
+
+devflow is a set of Python tools to manage versions, help implement the git
+flow development process, and build Python and Debian packages. Although it has
+been developed primarily for use with Synnefo, other projects may find it
+useful too.
+
+Quickstart
+==========
+
+import os
+
+from devflow.version import get_python_version
+os.environ["DEVFLOW_BUILD_MODE"] = "snapshot"
+print "This commit's Python version is", get_python_version()
+
+or take a look at devflow's own setup.py for ideas.
+
+
+Feedback
+========
+
+For any comments or suggestions for improvement, please contact
+the GRNET dev team <okeanos-dev@lists.grnet.gr>
