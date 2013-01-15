@@ -1,0 +1,25 @@
+*.db
+*.pyc
+*~
+*.*.swp
+bin/
+share/
+build/
+include/
+*.pt.py
+*.installed.cfg
+*.sqlite
+.Python
+.idea
+.DS_Store
+selenium-server-standalone-2.0b2.jar
+.project
+.pydevproject
+.settings/
+settings.d/*-local.conf
+*.egg-info
+dist
+_build
+
+# version module created automatically from setup.py
+/devflow/version.py
