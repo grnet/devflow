@@ -170,10 +170,10 @@ setup(
     long_description=README + '\n\n' + CHANGES,
     classifiers=CLASSIFIERS,
 
-    author='GRNET dev team',
-    author_email='okeanos-dev@lists.grnet.gr',
-    maintainer='GRNET dev team',
-    maintainer_email='okeanos-dev@lists.grnet.gr',
+    author='Synnefo development team',
+    author_email='synnefo-devel@googlegroups.com',
+    maintainer='Synnefo development team',
+    maintainer_email='synnefo-devel@googlegroups.com',
 
     packages=PACKAGES,
     package_dir={'': PACKAGES_ROOT},
