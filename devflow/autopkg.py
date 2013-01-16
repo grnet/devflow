@@ -37,6 +37,9 @@ import sys
 from sh import mktemp, cd, rm, git_dch, python
 from optparse import OptionParser
 
+from devflow.versioning import (get_python_version,
+                                debian_version_from_python_version)
+
 try:
     from colors import red, green
 except ImportError:
@@ -55,9 +58,8 @@ PACKAGES = ("devflow", )
 
 def main():
     from devflow.version import __version__
-
     parser = OptionParser(usage="usage: %prog [options] mode",
-                          version="%prog - devflow %s" % __version__)
+                          version="devflow %s" % __version__)
     parser.add_option("-k", "--keep-repo",
                       action="store_true",
                       dest="keep_repo",
@@ -79,7 +81,11 @@ def main():
 
     (options, args) = parser.parse_args()
 
-    mode = args[0]
+    try:
+        mode = args[0]
+    except IndexError:
+        raise ValueError("Mode argument is mandatory. Usage: %s"
+                         % parser.usage)
     if mode not in AVAILABLE_MODES:
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
@@ -118,11 +124,7 @@ def main():
         repo.references[debian_branch]
     except IndexError:
         # Branch does not exist
-        # FIXME: remove hard-coded strings..
-        if branch == "debian":
-            repo.git.branch("--track", debian_branch, "origin/debian")
-        else:
-            repo.git.branch("--track", debian_branch, "origin/debian-develop")
+        repo.git.branch("--track", debian_branch, "origin/" + debian_branch)
 
     repo.git.checkout(debian_branch)
     print_green("Changed to branch '%s'" % debian_branch)
@@ -131,24 +133,28 @@ def main():
     print_green("Merged branch '%s' into '%s'" % (branch, debian_branch))
 
     cd(repo_dir)
-    version = python(repo_dir + "/devflow/version.py", "debian").strip()
-    print_green("The new debian version will be: '%s'" % version)
+    python_version = get_python_version()
+    debian_version = debian_version_from_python_version(python_version)
+    print_green("The new debian version will be: '%s'" % debian_version)
 
     dch = git_dch("--debian-branch=%s" % debian_branch,
             "--git-author",
             "--ignore-regex=\".*\"",
             "--multimaint-merge",
             "--since=HEAD",
-            "--new-version=%s" % version)
+            "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
-    os.system("vim debian/changelog")
     repo.git.add("debian/changelog")
 
     if mode == "release":
+        os.system("vim debian/changelog")
+        repo.git.add("debian/changelog")
         repo.git.commit("-s", "-a", "-m", "Bump new upstream version")
-        if branch == "master":
-            repo.git.tag("debian/" + version)
+        python_tag = python_version
+        debian_tag = "debian/" + python_tag
+        repo.git.tag(debian_tag)
+        repo.git.tag(python_tag, branch)
 
     for package in PACKAGES:
         # python setup.py should run in its directory
@@ -178,7 +184,23 @@ def main():
         print_green("Repository dir '%s'" % repo_dir)
 
     print_green("Completed. Version '%s', build area: '%s'"
-                % (version, build_dir))
+                % (debian_version, build_dir))
+
+    if mode == "release":
+        TAG_MSG = "Tagged branch %s with tag %s\n"
+        print_green(TAG_MSG % (branch, python_tag))
+        print_green(TAG_MSG % (debian_branch, debian_tag))
+
+        UPDATE_MSG = "To update repository %s, go to %s, and run the"\
+                     " following commands:\n" + "git_push origin %s\n" * 3
+
+        origin_url = repo.remotes['origin'].url
+        remote_url = original_repo.remotes['origin'].url
+
+        print_green(UPDATE_MSG % (origin_url, repo_dir, debian_branch,
+                    debian_tag, python_tag))
+        print_green(UPDATE_MSG % (remote_url, original_repo.working_dir,
+                    debian_branch, debian_tag, python_tag))
 
 
 if __name__ == "__main__":
