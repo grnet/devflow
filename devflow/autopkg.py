@@ -34,11 +34,11 @@
 import git
 import os
 import sys
-from sh import mktemp, cd, rm, git_dch, python
 from optparse import OptionParser
+from collections import namedtuple
+from sh import mktemp, cd, rm, git_dch, python
 
-from devflow.versioning import (get_python_version,
-                                debian_version_from_python_version)
+from devflow import versioning
 
 try:
     from colors import red, green
@@ -50,6 +50,14 @@ print_red = lambda x: sys.stdout.write(red(x) + "\n")
 print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
 AVAILABLE_MODES = ["release", "snapshot"]
+
+branch_type = namedtuple("branch_type", ["default_debian_branch"])
+BRANCH_TYPES = {
+    "feature": branch_type("debian-develop"),
+    "develop": branch_type("debian-develop"),
+    "release": branch_type("debian-develop"),
+    "master": branch_type("debian"),
+    "hotfix": branch_type("debian")}
 
 
 def get_packages_to_build(toplevel_dir):
@@ -131,28 +139,34 @@ def main():
     print "Latest Reflog entry is %s" % reflog_hexsha
 
     branch = repo.head.reference.name
-    if branch == "master":
-        debian_branch = "debian"
-    else:
-        debian_branch = "debian-" + branch
+    brnorm = versioning.normalize_branch_name(branch)
+    btypestr = versioning.get_branch_type(brnorm)
 
-    if not debian_branch in repo.references:
-        # Branch does not exist!
-        if "origin/" + debian_branch in repo.references:
-            remote = "origin/" + debian_branch
-        else:
-            remote = "origin/debian-develop"
-        repo.git.branch("--track", debian_branch, remote)
+    debian_branch = "debian-" + brnorm
+    origin_debian = "origin/" + debian_branch
+    if not origin_debian in repo.references:
+        # Get default debian branch
+        try:
+            debian_branch = BRANCH_TYPES[btypestr].default_debian_branch
+        except KeyError:
+            allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
+            raise ValueError("Malformed branch name '%s', cannot classify as one "
+                             "of %s" % (btypestr, allowed_branches))
+        origin_debian = "origin/" + debian_branch
+
+    repo.git.branch("--track", debian_branch, origin_debian)
+    print_green("Created branch '%s' to track '%s'" % (debian_branch,
+                origin_debian))
 
     repo.git.checkout(debian_branch)
     print_green("Changed to branch '%s'" % debian_branch)
 
     repo.git.merge(branch)
-    print_green("Merged branch '%s' into '%s'" % (branch, debian_branch))
+    print_green("Merged branch '%s' into '%s'" % (brnorm, debian_branch))
 
     cd(repo_dir)
-    python_version = get_python_version()
-    debian_version = debian_version_from_python_version(python_version)
+    python_version = versioning.get_python_version()
+    debian_version = versioning.debian_version_from_python_version(python_version)
     print_green("The new debian version will be: '%s'" % debian_version)
 
     dch = git_dch("--debian-branch=%s" % debian_branch,
@@ -173,7 +187,7 @@ def main():
         python_tag = python_version
         debian_tag = "debian/" + python_tag
         repo.git.tag(debian_tag)
-        repo.git.tag(python_tag, branch)
+        repo.git.tag(python_tag, brnorm)
 
     for package in packages:
         # python setup.py should run in its directory
@@ -196,7 +210,7 @@ def main():
     cd(repo_dir)
     os.system("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
               " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
-              % (build_dir, branch, debian_branch))
+              % (build_dir, brnorm, debian_branch))
 
     if not options.keep_repo:
         print_green("Removing cloned repo '%s'." % repo_dir)
@@ -209,7 +223,7 @@ def main():
 
     if mode == "release":
         TAG_MSG = "Tagged branch %s with tag %s\n"
-        print_green(TAG_MSG % (branch, python_tag))
+        print_green(TAG_MSG % (brnorm, python_tag))
         print_green(TAG_MSG % (debian_branch, debian_tag))
 
         UPDATE_MSG = "To update repository %s, go to %s, and run the"\
