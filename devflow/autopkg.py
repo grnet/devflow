@@ -136,11 +136,13 @@ def main():
     else:
         debian_branch = "debian-" + branch
 
-    try:
-        repo.references[debian_branch]
-    except IndexError:
-        # Branch does not exist
-        repo.git.branch("--track", debian_branch, "origin/" + debian_branch)
+    if not debian_branch in repo.references:
+        # Branch does not exist!
+        if "origin/" + debian_branch in repo.references:
+            remote = "origin/" + debian_branch
+        else:
+            remote = "origin/debian-develop"
+        repo.git.branch("--track", debian_branch, remote)
 
     repo.git.checkout(debian_branch)
     print_green("Changed to branch '%s'" % debian_branch)
