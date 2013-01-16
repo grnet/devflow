@@ -53,7 +53,7 @@ from collections import namedtuple
 #                     base_version in this branch
 branch_type = namedtuple("branch_type", ["builds_snapshot", "builds_release",
                                          "versioned", "allowed_version_re"])
-VERSION_RE = "[0-9]+\.[0-9]+"
+VERSION_RE = "[0-9]+\.[0-9]+(\.[0-9]+)*"
 BRANCH_TYPES = {
     "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE),
     "develop": branch_type(True, False, False, "^%snext$" % VERSION_RE),
