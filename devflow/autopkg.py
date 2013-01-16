@@ -161,6 +161,7 @@ def main():
             "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
+    os.system("vim debian/changelog")
     repo.git.add("debian/changelog")
 
     if mode == "release":
