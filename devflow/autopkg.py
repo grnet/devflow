@@ -178,8 +178,9 @@ def main():
         cd(package)
         package_dir = repo_dir + "/" + package
         res = python(package_dir + "/setup.py", "sdist", _out=sys.stdout)
-        cd("../")
         print res.stdout
+        if package != ".":
+            cd("../")
 
     # Add version.py files to repo
     os.system("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
@@ -190,6 +191,7 @@ def main():
         print_green("Created directory '%s' to store the .deb files." %
                      build_dir)
 
+    cd(repo_dir)
     os.system("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
               " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
               % (build_dir, branch, debian_branch))
