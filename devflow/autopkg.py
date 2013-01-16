@@ -51,9 +51,18 @@ print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
 AVAILABLE_MODES = ["release", "snapshot"]
 
-# TODO: Make the PACKAGES tuple configurable,
-# read it from autopkg.conf in the git toplevel directory.
-PACKAGES = ("devflow", )
+
+def get_packages_to_build(toplevel_dir):
+    conf_file = os.path.join(toplevel_dir, "autopkg.conf")
+    try:
+        f = open(conf_file)
+    except IOError:
+        raise RuntimeError("Configuration file %s does not exist!" % conf_file)
+
+    lines = [l.strip() for l in f.readlines()]
+    l = [l for l in lines if not l.startswith("#")]
+    f.close()
+    return l
 
 
 def main():
@@ -90,7 +99,6 @@ def main():
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
 
-    # Do not prompt for merge message. Required for some Git versions
     os.environ["GITFLOW_BUILD_MODE"] = mode
 
     try:
@@ -98,8 +106,8 @@ def main():
     except git.git.InvalidGitRepositoryError:
         raise RuntimeError(red("Current directory is not git repository."))
 
+    toplevel = original_repo.working_dir
     if original_repo.is_dirty() and not options.force_dirty:
-        toplevel = original_repo.working_dir
         raise RuntimeError(red("Repository %s is dirty." % toplevel))
 
     repo_dir = options.repo_dir
@@ -107,6 +115,14 @@ def main():
         repo_dir = mktemp("-d", "/tmp/devflow-build-repo-XXX").stdout.strip()
         print_green("Created temporary directory '%s' for the cloned repo."
                     % repo_dir)
+
+    packages = get_packages_to_build(toplevel)
+    if packages:
+        print_green("Will build the following packages:\n" + \
+                    "\n".join(packages))
+    else:
+        raise RuntimeError("Configuration file is empty."
+                           " No packages to build.")
 
     repo = original_repo.clone(repo_dir)
     print_green("Cloned current repository to '%s'." % repo_dir)
@@ -156,7 +172,7 @@ def main():
         repo.git.tag(debian_tag)
         repo.git.tag(python_tag, branch)
 
-    for package in PACKAGES:
+    for package in packages:
         # python setup.py should run in its directory
         cd(package)
         package_dir = repo_dir + "/" + package
