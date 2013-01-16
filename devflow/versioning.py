@@ -83,7 +83,7 @@ def get_commit_id(commit, current_branch):
     elif len(parents) == 2:
         if cur_br_name.startswith("debian-") or cur_br_name == "debian":
             pr1, pr2 = parents
-            return short_id(pr1) + "~" + short_id(pr2)
+            return short_id(pr1) + "-" + short_id(pr2)
         else:
             return short_id(commit)
     else:
@@ -107,7 +107,6 @@ def vcs_info():
         branch = repo.head.reference
         revid = get_commit_id(branch.commit, branch)
         revno = len(list(repo.iter_commits()))
-        desc = repo.git.describe("--tags")
         toplevel = repo.working_dir
     except git.InvalidGitRepositoryError:
         log.error("Could not retrieve git information. " +
@@ -115,9 +114,9 @@ def vcs_info():
         return None
 
     info = namedtuple("vcs_info", ["branch", "revid", "revno",
-                                   "desc", "toplevel"])
+                                   "toplevel"])
 
-    return info(branch=branch.name, revid=revid, revno=revno, desc=desc,
+    return info(branch=branch.name, revid=revid, revno=revno,
                 toplevel=toplevel)
 
 
@@ -137,9 +136,12 @@ def build_mode():
     try:
         mode = os.environ["GITFLOW_BUILD_MODE"]
         assert mode == "release" or mode == "snapshot"
-    except (KeyError, AssertionError):
-        raise ValueError("GITFLOW_BUILD_MODE environment variable must be "
-                         "'release' or 'snapshot'")
+    except KeyError:
+        raise ValueError("GITFLOW_BUILD_MODE environment variable is not set."
+                         " Set this variable to 'release' or 'snapshot'")
+    except AssertionError:
+        raise ValueError("GITFLOW_BUILD_MODE environment variable must be"
+                         " 'release' or 'snapshot'")
     return mode
 
 
@@ -390,9 +392,23 @@ def debian_version_from_python_version(pyver):
     return pyver.replace("_", "~").replace("rc", "~rc") + "-1"
 
 
+def get_python_version():
+    v = vcs_info()
+    b = base_version(v)
+    mode = build_mode()
+    return python_version(b, v, mode)
+
+
 def debian_version(base_version, vcs_info, mode):
     p = python_version(base_version, vcs_info, mode)
     return debian_version_from_python_version(p)
+
+
+def get_debian_version():
+    v = vcs_info()
+    b = base_version(v)
+    mode = build_mode()
+    return debian_version(b, v, mode)
 
 
 def user_info():
@@ -410,30 +426,34 @@ def update_version(module, name="version", root="."):
 
     """
 
+    paths = [root] + module.split(".") + ["%s.py" % name]
+    module_filename = os.path.join(*paths)
+
     v = vcs_info()
     if not v:
         # Return early if not in development environment
+        log.error("Can not compute version outside of a git repository."
+                  " Will not update %s version file" % module_filename)
         return
     b = base_version(v)
     mode = build_mode()
-    paths = [root] + module.split(".") + ["%s.py" % name]
-    module_filename = os.path.join(*paths)
     version = python_version(b, v, mode)
     content = """
 __version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
 __version_user_info__ = "%(user_info)s"
-    """ % dict(version=version, version_info=version.split("."),
+""" % dict(version=version, version_info=version.split("."),
                vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
                user_info=user_info())
 
     module_file = file(module_filename, "w+")
     module_file.write(content)
     module_file.close()
+    return module_filename
 
 
-if __name__ == "__main__":
+def main():
     v = vcs_info()
     b = base_version(v)
     mode = build_mode()
@@ -448,3 +468,6 @@ if __name__ == "__main__":
         print python_version(b, v, mode)
     elif arg == "debian":
         print debian_version(b, v, mode)
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -45,7 +45,7 @@ for automatic generation of version strings.
 import os
 import unittest
 from pkg_resources import parse_version
-from versioning import debian_version_from_python_version
+from devflow.versioning import debian_version_from_python_version
 
 
 class DebianVersionObject(object):

@@ -1,4 +1,4 @@
-# Copyright 2011 GRNET S.A. All rights reserved.
+# Copyright 2012 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -31,7 +31,6 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 #
-
 import distribute_setup
 distribute_setup.use_setuptools()
 
@@ -43,13 +42,15 @@ from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
-
 try:
+    from devflow import versioning
     # use devflow to update the version file
-    from devflow.versioning import update_version
-    update_version('devflow', 'version', HERE)
+    versioning.update_version('devflow', 'version', HERE)
 except ImportError:
-    raise RuntimeError("devflow is a build dependency")
+    version_fpath = os.path.join(HERE, 'devflow', 'version.py')
+    sys.stdout.write("WARNING: Can not update version because `devflow` is"
+                    " not installed. Please make sure to manually"
+                    " update version file %s" % version_fpath)
 
 from devflow.version import __version__
 
@@ -67,7 +68,7 @@ CLASSIFIERS = []
 
 # Package requirements
 INSTALL_REQUIRES = [
-    'git'
+    'gitpython'
 ]
 
 # Provided as an attribute, so you can append to these instead
@@ -141,7 +142,8 @@ def find_package_data(
                         new_package = package + "." + name
                     stack.append((fn, "", new_package, False))
                 else:
-                    stack.append((fn, prefix + name + "/", package, only_in_packages))
+                    stack.append((fn, prefix + name + "/", package,
+                                  only_in_packages))
             elif package or not only_in_packages:
                 # is a file
                 bad_name = False
@@ -156,34 +158,35 @@ def find_package_data(
                         break
                 if bad_name:
                     continue
-                out.setdefault(package, []).append(prefix+name)
+                out.setdefault(package, []).append(prefix + name)
     return out
 
 setup(
-    name = 'devflow',
-    version = VERSION,
-    license = 'BSD',
-    url = 'http://www.synnefo.ogr/',
-    description = SHORT_DESCRIPTION,
-    long_description=README + '\n\n' +  CHANGES,
-    classifiers = CLASSIFIERS,
+    name='devflow',
+    version=VERSION,
+    license='BSD',
+    url='http://www.synnefo.ogr/',
+    description=SHORT_DESCRIPTION,
+    long_description=README + '\n\n' + CHANGES,
+    classifiers=CLASSIFIERS,
 
-    author = 'GRNET dev team',
-    author_email = 'okeanos-dev@lists.grnet.gr',
-    maintainer = 'GRNET dev team',
-    maintainer_email = 'okeanos-dev@lists.grnet.gr',
+    author='GRNET dev team',
+    author_email='okeanos-dev@lists.grnet.gr',
+    maintainer='GRNET dev team',
+    maintainer_email='okeanos-dev@lists.grnet.gr',
 
-    packages = PACKAGES,
-    package_dir= {'': PACKAGES_ROOT},
-    include_package_data = True,
-    package_data = find_package_data('.'),
-    zip_safe = False,
+    packages=PACKAGES,
+    package_dir={'': PACKAGES_ROOT},
+    include_package_data=True,
+    package_data=find_package_data('.'),
+    zip_safe=False,
 
-    install_requires = INSTALL_REQUIRES,
+    install_requires=INSTALL_REQUIRES,
 
-    entry_points = {
+    entry_points={
      'console_scripts': [
-         'devflow-version = devflow.versioning:main',
+         'devflow-version=devflow.versioning:main',
+         'devflow-autopkg=devflow.autopkg:main',
          ],
       },
 )
