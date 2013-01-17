@@ -276,7 +276,7 @@ def main():
         print_green(TAG_MSG % (debian_branch, debian_tag))
 
         UPDATE_MSG = "To update repository %s, go to %s, and run the"\
-                     " following commands:\n" + "git_push origin %s\n" * 3
+                     " following commands:\n" + "git push origin %s\n" * 3
 
         origin_url = repo.remotes['origin'].url
         remote_url = original_repo.remotes['origin'].url
