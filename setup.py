@@ -68,7 +68,7 @@ CLASSIFIERS = []
 
 # Package requirements
 INSTALL_REQUIRES = [
-    'gitpython'
+    'gitpython', 'sh',
 ]
 
 # Provided as an attribute, so you can append to these instead
