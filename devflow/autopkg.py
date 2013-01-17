@@ -118,12 +118,6 @@ def main():
     if original_repo.is_dirty() and not options.force_dirty:
         raise RuntimeError(red("Repository %s is dirty." % toplevel))
 
-    repo_dir = options.repo_dir
-    if not repo_dir:
-        repo_dir = mktemp("-d", "/tmp/devflow-build-repo-XXX").stdout.strip()
-        print_green("Created temporary directory '%s' for the cloned repo."
-                    % repo_dir)
-
     packages = get_packages_to_build(toplevel)
     if packages:
         print_green("Will build the following packages:\n" + \
@@ -131,6 +125,12 @@ def main():
     else:
         raise RuntimeError("Configuration file is empty."
                            " No packages to build.")
+
+    repo_dir = options.repo_dir
+    if not repo_dir:
+        repo_dir = mktemp("-d", "/tmp/devflow-build-repo-XXX").stdout.strip()
+        print_green("Created temporary directory '%s' for the cloned repo."
+                    % repo_dir)
 
     repo = original_repo.clone(repo_dir)
     print_green("Cloned current repository to '%s'." % repo_dir)
