@@ -185,12 +185,12 @@ def main():
     if not origin_debian in repo.references:
         # Get default debian branch
         try:
-            debian_branch = BRANCH_TYPES[btypestr].default_debian_branch
+            default_debian = BRANCH_TYPES[btypestr].default_debian_branch
+            origin_debian = "origin/" + default_debian
         except KeyError:
             allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
             raise ValueError("Malformed branch name '%s', cannot classify as"
                              " one of %s" % (btypestr, allowed_branches))
-        origin_debian = "origin/" + debian_branch
 
     repo.git.branch("--track", debian_branch, origin_debian)
     print_green("Created branch '%s' to track '%s'" % (debian_branch,
@@ -260,7 +260,7 @@ def main():
               % (build_dir, brnorm, debian_branch))
 
     # Remove cloned repo
-    if not options.keep_repo:
+    if mode != 'release' and not options.keep_repo:
         print_green("Removing cloned repo '%s'." % repo_dir)
         rm("-r", repo_dir)
     else:
