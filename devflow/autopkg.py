@@ -220,9 +220,6 @@ def main():
             "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
-    os.system("vim debian/changelog")
-    repo.git.add("debian/changelog")
-
     if mode == "release":
         # Commit changelog and update tag branches
         os.system("vim debian/changelog")
@@ -232,6 +229,15 @@ def main():
         debian_tag = "debian/" + python_tag
         repo.git.tag(debian_tag)
         repo.git.tag(python_tag, brnorm)
+    else:
+        f = open("debian/changelog", 'r+')
+        lines = f.readlines()
+        lines[0] = lines[0].replace("UNRELEASED", "unstable")
+        lines[2] = lines[2].replace("UNRELEASED", "Snapshot version")
+        f.seek(0)
+        f.writelines(lines)
+        f.close()
+        repo.git.add("debian/changelog")
 
     # Update the python version files
     # TODO: remove this
