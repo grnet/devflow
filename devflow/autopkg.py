@@ -72,11 +72,38 @@ def get_packages_to_build(toplevel_dir):
     f.close()
     return l
 
+DESCRIPTION = """Tool for automatical build of debian packages.
+
+%(prog)s is a helper script for automatic build of debian packages from
+repositories that follow the `git flow` development model
+<http://nvie.com/posts/a-successful-git-branching-model/>.
+
+This script must run from the toplevel directory of a clean git repository and
+will perform the following steps:
+    * Clone your repository to a temporary directory
+    * Merge the current branch with the corresponding debian branch
+    * Compute the version of the new package and update the python
+      version files
+    * Create a new entry in debian/changelog, using `git-dch`
+    * Create the debian packages, using `git-buildpackage`
+    * Tag the appropriate branches if in `release` mode
+
+"""
+
+
+def print_help(prog):
+    print DESCRIPTION % {"prog": prog}
+
 
 def main():
     from devflow.version import __version__
     parser = OptionParser(usage="usage: %prog [options] mode",
-                          version="devflow %s" % __version__)
+                          version="devflow %s" % __version__,
+                          add_help_option=False)
+    parser.add_option("-h", "--help",
+                      action="store_true",
+                      default=False,
+                      help="show this help message")
     parser.add_option("-k", "--keep-repo",
                       action="store_true",
                       dest="keep_repo",
@@ -97,6 +124,11 @@ def main():
                       help="Do not check if working directory is dirty")
 
     (options, args) = parser.parse_args()
+
+    if options.help:
+        print_help(parser.get_prog_name())
+        parser.print_help()
+        return
 
     try:
         mode = args[0]
@@ -150,8 +182,8 @@ def main():
             debian_branch = BRANCH_TYPES[btypestr].default_debian_branch
         except KeyError:
             allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-            raise ValueError("Malformed branch name '%s', cannot classify as one "
-                             "of %s" % (btypestr, allowed_branches))
+            raise ValueError("Malformed branch name '%s', cannot classify as"
+                             " one of %s" % (btypestr, allowed_branches))
         origin_debian = "origin/" + debian_branch
 
     repo.git.branch("--track", debian_branch, origin_debian)
@@ -166,7 +198,8 @@ def main():
 
     cd(repo_dir)
     python_version = versioning.get_python_version()
-    debian_version = versioning.debian_version_from_python_version(python_version)
+    debian_version = versioning.\
+            debian_version_from_python_version(python_version)
     print_green("The new debian version will be: '%s'" % debian_version)
 
     dch = git_dch("--debian-branch=%s" % debian_branch,
