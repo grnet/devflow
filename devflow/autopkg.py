@@ -171,6 +171,11 @@ def main():
     print "Latest Reflog entry is %s" % reflog_hexsha
 
     branch = repo.head.reference.name
+    allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
+    if branch.split('-')[0] not in allowed_branches:
+        raise ValueError("Malformed branch name '%s', cannot classify as"
+                         " one of %s" % (branch, allowed_branches))
+
     brnorm = versioning.normalize_branch_name(branch)
     btypestr = versioning.get_branch_type(brnorm)
 
