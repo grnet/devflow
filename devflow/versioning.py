@@ -464,6 +464,47 @@ __version_user_info__ = "%(user_info)s"
     return module_filename
 
 
+def bump_version_main():
+    try:
+        version = sys.argv[1]
+        bump_version(version)
+    except IndexError:
+        sys.stdout.write("Give me a version %s!\n")
+        sys.stdout.write("usage: %s version\n" % sys.argv[0])
+
+
+def bump_version(new_version):
+    """Set new base version to base version file and commit"""
+    v = vcs_info()
+    mode = build_mode()
+
+    # Check that new base version is valid
+    python_version(new_version, v, mode)
+
+    repo = git.Repo(".")
+    toplevel = repo.working_dir
+
+    old_version = base_version(v)
+    sys.stdout.write("Current base version is '%s'\n" % old_version)
+
+    version_file = toplevel + "/version"
+    sys.stdout.write("Updating version file %s from version '%s' to '%s'\n"
+                     % (version_file, old_version, new_version))
+
+    f = open(version_file, 'rw+')
+    lines = f.readlines()
+    for i in range(0, len(lines)):
+        if not lines[i].startswith("#"):
+                lines[i] = lines[i].replace(old_version, new_version)
+    f.seek(0)
+    f.writelines(lines)
+    f.close()
+
+    repo.git.add(version_file)
+    repo.git.commit(m="Bump version")
+    sys.stdout.write("Update version file and commited\n")
+
+
 def main():
     v = vcs_info()
     b = base_version(v)
