@@ -497,6 +497,7 @@ def bump_version(new_version):
         if not lines[i].startswith("#"):
                 lines[i] = lines[i].replace(old_version, new_version)
     f.seek(0)
+    f.truncate(0)
     f.writelines(lines)
     f.close()
 
