@@ -224,7 +224,7 @@ def main():
         # Commit changelog and update tag branches
         os.system("vim debian/changelog")
         repo.git.add("debian/changelog")
-        repo.git.commit("-s", "-a", "-m", "Bump new upstream version")
+        repo.git.commit("-s", "-a", m="Bump new upstream version")
         python_tag = python_version
         debian_tag = "debian/" + python_tag
         repo.git.tag(debian_tag)
