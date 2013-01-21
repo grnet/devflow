@@ -128,6 +128,7 @@ def base_version(vcs_info):
     l = [l for l in lines if not l.startswith("#")]
     if len(l) != 1:
         raise ValueError("File '%s' should contain a single non-comment line.")
+    f.close()
     return l[0]
 
 

@@ -297,9 +297,9 @@ def get_packages_to_build(config_file):
     config_file = os.path.abspath(config_file)
     try:
         f = open(config_file)
-    except IOError:
-        raise RuntimeError("Configuration file %s does not exist!"
-                           % config_file)
+    except IOError as e:
+        raise IOError("Can not access configuration file %s: %s"
+                      % (config_file, e.strerror))
 
     lines = [l.strip() for l in f.readlines()]
     l = [l for l in lines if not l.startswith("#")]
