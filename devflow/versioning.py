@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2010, 2011, 2012 GRNET S.A. All rights reserved.
+# Copyright (C) 2012, 2013 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -38,7 +38,6 @@ import os
 import re
 import sys
 import pprint
-import subprocess
 import git
 
 from distutils import log
@@ -284,7 +283,6 @@ def python_version(base_version, vcs_info, mode):
     """
 
     branch = vcs_info.branch
-
 
     brnorm = normalize_branch_name(branch)
     btypestr = get_branch_type(brnorm)
