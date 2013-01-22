@@ -319,9 +319,9 @@ def python_version(base_version, vcs_info, mode):
     snap = (mode == "snapshot")
 
     if ((snap and not btype.builds_snapshot) or
-        (not snap and not btype.builds_release)):
-        raise ValueError("Invalid mode '%s' in branch type '%s'" %
-                         (mode, btypestr))
+        (not snap and not btype.builds_release)):  # nopep8
+            raise ValueError("Invalid mode '%s' in branch type '%s'" %
+                             (mode, btypestr))
 
     if snap:
         v = "%s_%d_%s" % (base_version, vcs_info.revno, vcs_info.revid)
@@ -448,14 +448,13 @@ def update_version(module, name="version", root="."):
     b = base_version(v)
     mode = build_mode()
     version = python_version(b, v, mode)
-    content = """
-__version__ = "%(version)s"
+    content = """__version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
 __version_user_info__ = "%(user_info)s"
 """ % dict(version=version, version_info=version.split("."),
-               vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
-               user_info=user_info())
+           vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
+           user_info=user_info())
 
     module_file = file(module_filename, "w+")
     module_file.write(content)
