@@ -151,7 +151,7 @@ def main():
     config_file = options.config_file or os.path.join(toplevel, "autopkg.conf")
     packages = get_packages_to_build(config_file)
     if packages:
-        print_green("Will build the following packages:\n" + \
+        print_green("Will build the following packages:\n"
                     "\n".join(packages))
     else:
         raise RuntimeError("Configuration file is empty."
@@ -208,16 +208,16 @@ def main():
     cd(repo_dir)
     python_version = versioning.get_python_version()
     debian_version = versioning.\
-            debian_version_from_python_version(python_version)
+        debian_version_from_python_version(python_version)
     print_green("The new debian version will be: '%s'" % debian_version)
 
     # Update changelog
     dch = git_dch("--debian-branch=%s" % debian_branch,
-            "--git-author",
-            "--ignore-regex=\".*\"",
-            "--multimaint-merge",
-            "--since=HEAD",
-            "--new-version=%s" % debian_version)
+                  "--git-author",
+                  "--ignore-regex=\".*\"",
+                  "--multimaint-merge",
+                  "--since=HEAD",
+                  "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
     if mode == "release":
@@ -258,7 +258,7 @@ def main():
     if not options.build_dir:
         build_dir = create_temp_directory("df-build")
         print_green("Created directory '%s' to store the .deb files." %
-                     build_dir)
+                    build_dir)
 
     cd(repo_dir)
     os.system("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
