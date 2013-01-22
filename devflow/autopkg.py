@@ -160,7 +160,7 @@ def main():
     # Clone the repo
     repo_dir = options.repo_dir
     if not repo_dir:
-        repo_dir = mktemp("-d", "/tmp/devflow-build-repo-XXX").stdout.strip()
+        repo_dir = create_temp_directory("df-repo")
         print_green("Created temporary directory '%s' for the cloned repo."
                     % repo_dir)
 
@@ -256,7 +256,7 @@ def main():
     # Create debian branches
     build_dir = options.build_dir
     if not options.build_dir:
-        build_dir = mktemp("-d", "/tmp/devflow-build-XXX").stdout.strip()
+        build_dir = create_temp_directory("df-build")
         print_green("Created directory '%s' to store the .deb files." %
                      build_dir)
 
@@ -305,6 +305,11 @@ def get_packages_to_build(config_file):
     l = [l for l in lines if not l.startswith("#")]
     f.close()
     return l
+
+
+def create_temp_directory(suffix):
+    create_dir_cmd = mktemp("-d", "/tmp/" + suffix + "-XXXXX")
+    return create_dir_cmd.stdout.strip()
 
 
 if __name__ == "__main__":
