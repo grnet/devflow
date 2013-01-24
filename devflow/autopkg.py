@@ -315,7 +315,7 @@ def create_temp_directory(suffix):
 def call(cmd):
     rc = os.system(cmd)
     if rc:
-        raise RuntimeError("Command '%s' failed!" % rc)
+        raise RuntimeError("Command '%s' failed!" % cmd)
 
 if __name__ == "__main__":
     sys.exit(main())
