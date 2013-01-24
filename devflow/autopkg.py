@@ -222,7 +222,7 @@ def main():
 
     if mode == "release":
         # Commit changelog and update tag branches
-        os.system("vim debian/changelog")
+        call("vim debian/changelog")
         repo.git.add("debian/changelog")
         repo.git.commit("-s", "-a", m="Bump new upstream version")
         python_tag = python_version
@@ -251,7 +251,7 @@ def main():
             cd("../")
 
     # Add version.py files to repo
-    os.system("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
+    call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
 
     # Create debian branches
     build_dir = options.build_dir
@@ -261,9 +261,9 @@ def main():
                     build_dir)
 
     cd(repo_dir)
-    os.system("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
-              " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
-              % (build_dir, brnorm, debian_branch))
+    call("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
+         " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
+         % (build_dir, brnorm, debian_branch))
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
@@ -311,6 +311,11 @@ def create_temp_directory(suffix):
     create_dir_cmd = mktemp("-d", "/tmp/" + suffix + "-XXXXX")
     return create_dir_cmd.stdout.strip()
 
+
+def call(cmd):
+    rc = os.system(cmd)
+    if rc:
+        raise RuntimeError("Command '%s' failed!" % rc)
 
 if __name__ == "__main__":
     sys.exit(main())
