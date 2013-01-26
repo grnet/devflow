@@ -196,6 +196,8 @@ def main():
     # Tag branch with python version
     branch_tag = python_version
     repo.git.tag(branch_tag, branch)
+    upstream_tag = "upstream/" + branch_tag
+    repo.git.tag(upstream_tag, branch)
 
     # Update changelog
     dch = git_dch("--debian-branch=%s" % debian_branch,
@@ -246,8 +248,8 @@ def main():
     cd(repo_dir)
     call("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
          " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
-         " -i\/version\.py"
-         % (build_dir, branch, debian_branch))
+         " -i\/version\.py --git-upstream-tag=%s"
+         % (build_dir, branch, debian_branch, upstream_tag))
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
