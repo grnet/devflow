@@ -150,49 +150,31 @@ def main():
     # Get packages from configuration file
     config_file = options.config_file or os.path.join(toplevel, "autopkg.conf")
     packages = get_packages_to_build(config_file)
-    if packages:
-        print_green("Will build the following packages:\n"
-                    "\n".join(packages))
-    else:
-        raise RuntimeError("Configuration file is empty."
-                           " No packages to build.")
+    print_green("Will build the following packages:\n" + "\n".join(packages))
 
     # Clone the repo
-    repo_dir = options.repo_dir
-    if not repo_dir:
-        repo_dir = create_temp_directory("df-repo")
-        print_green("Created temporary directory '%s' for the cloned repo."
-                    % repo_dir)
-
+    repo_dir = options.repo_dir or create_temp_directory("df-repo")
     repo = original_repo.clone(repo_dir)
-    print_green("Cloned current repository to '%s'." % repo_dir)
+    print_green("Cloned repository to '%s'." % repo_dir)
 
-    reflog_hexsha = repo.head.log()[-1].newhexsha
-    print "Latest Reflog entry is %s" % reflog_hexsha
-
+    # Get current branch name and type and check if it is a valid one
     branch = repo.head.reference.name
-    allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-    if branch.split('-')[0] not in allowed_branches:
+    branch_type = versioning.get_branch_type(branch)
+
+    if branch_type not in BRANCH_TYPES.keys():
+        allowed_branches = ", ".join(BRANCH_TYPES.keys())
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
 
-    brnorm = versioning.normalize_branch_name(branch)
-    btypestr = versioning.get_branch_type(brnorm)
-
-    # Find the debian branch, and create it if does not exist
-    debian_branch = "debian-" + brnorm
+    # Find the debian branch
+    debian_branch = "debian-" + branch
     origin_debian = "origin/" + debian_branch
     if not origin_debian in repo.references:
         # Get default debian branch
-        try:
-            default_debian = BRANCH_TYPES[btypestr].default_debian_branch
-            origin_debian = "origin/" + default_debian
-        except KeyError:
-            allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-            raise ValueError("Malformed branch name '%s', cannot classify as"
-                             " one of %s" % (btypestr, allowed_branches))
+        default_debian = BRANCH_TYPES[branch_type].default_debian_branch
+        origin_debian = "origin/" + default_debian
 
-    repo.git.branch("--track", debian_branch, origin_debian)
+    repo.git.branch(debian_branch, origin_debian)
     print_green("Created branch '%s' to track '%s'" % (debian_branch,
                 origin_debian))
 
@@ -202,7 +184,7 @@ def main():
 
     # Merge with starting branch
     repo.git.merge(branch)
-    print_green("Merged branch '%s' into '%s'" % (brnorm, debian_branch))
+    print_green("Merged branch '%s' into '%s'" % (branch, debian_branch))
 
     # Compute python and debian version
     cd(repo_dir)
@@ -210,6 +192,10 @@ def main():
     debian_version = versioning.\
         debian_version_from_python_version(python_version)
     print_green("The new debian version will be: '%s'" % debian_version)
+
+    # Tag branch with python version
+    branch_tag = python_version
+    repo.git.tag(branch_tag, branch)
 
     # Update changelog
     dch = git_dch("--debian-branch=%s" % debian_branch,
@@ -221,23 +207,23 @@ def main():
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
     if mode == "release":
-        # Commit changelog and update tag branches
         call("vim debian/changelog")
-        repo.git.add("debian/changelog")
-        repo.git.commit("-s", "-a", m="Bump new upstream version")
-        python_tag = python_version
-        debian_tag = "debian/" + python_tag
-        repo.git.tag(debian_tag)
-        repo.git.tag(python_tag, brnorm)
     else:
         f = open("debian/changelog", 'r+')
         lines = f.readlines()
         lines[0] = lines[0].replace("UNRELEASED", "unstable")
-        lines[2] = lines[2].replace("UNRELEASED", "Snapshot version")
+        lines[2] = lines[2].replace("UNRELEASED", "Snapshot build")
         f.seek(0)
         f.writelines(lines)
         f.close()
-        repo.git.add("debian/changelog")
+
+    # Add changelog to INDEX
+    repo.git.add("debian/changelog")
+    # Commit Changes
+    repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
+    # Tag debian branch
+    debian_branch_tag = "debian/" + branch_tag
+    repo.git.tag(debian_branch_tag)
 
     # Update the python version files
     # TODO: remove this
@@ -253,44 +239,44 @@ def main():
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
 
-    # Create debian branches
-    build_dir = options.build_dir
-    if not options.build_dir:
-        build_dir = create_temp_directory("df-build")
-        print_green("Created directory '%s' to store the .deb files." %
-                    build_dir)
+    # Create debian packages
+    build_dir = options.build_dir or create_temp_directory("df-build")
+    print_green("Build directory: '%s'" % build_dir)
 
     cd(repo_dir)
     call("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
          " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
-         % (build_dir, brnorm, debian_branch))
+         " -i\/version\.py"
+         % (build_dir, branch, debian_branch))
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
         print_green("Removing cloned repo '%s'." % repo_dir)
         rm("-r", repo_dir)
-    else:
-        print_green("Repository dir '%s'" % repo_dir)
 
-    print_green("Completed. Version '%s', build area: '%s'"
-                % (debian_version, build_dir))
+    # Print final info
+    info = (("Version", debian_version),
+            ("Upstream branch", branch),
+            ("Upstream tag", branch_tag),
+            ("Debian branch", debian_branch),
+            ("Debian tag", debian_branch_tag),
+            ("Repository directory", repo_dir),
+            ("Packages directory", build_dir))
+    print_green("\n".join(["%s: %s" % (name, val) for name, val in info]))
 
     # Print help message
     if mode == "release":
-        TAG_MSG = "Tagged branch %s with tag %s\n"
-        print_green(TAG_MSG % (brnorm, python_tag))
-        print_green(TAG_MSG % (debian_branch, debian_tag))
+        origin = original_repo.remote().url
+        repo.create_remote("original_origin", origin)
+        print_green("Created remote 'original_origin' for the repository '%s'"
+                    % origin)
 
-        UPDATE_MSG = "To update repository %s, go to %s, and run the"\
-                     " following commands:\n" + "git push origin %s\n" * 3
-
-        origin_url = repo.remotes['origin'].url
-        remote_url = original_repo.remotes['origin'].url
-
-        print_green(UPDATE_MSG % (origin_url, repo_dir, debian_branch,
-                    debian_tag, python_tag))
-        print_green(UPDATE_MSG % (remote_url, original_repo.working_dir,
-                    debian_branch, debian_tag, python_tag))
+        print_green("To update repositories '%s' and '%s' go to '%s' and run:"
+                    % (toplevel, origin, repo_dir))
+        for remote in ['origin', 'original_origin']:
+            print
+            for obj in [debian_branch, branch_tag, debian_branch_tag]:
+                print_green("git push %s %s" % (remote, obj))
 
 
 def get_packages_to_build(config_file):
@@ -298,12 +284,15 @@ def get_packages_to_build(config_file):
     try:
         f = open(config_file)
     except IOError as e:
-        raise IOError("Can not access configuration file %s: %s"
+        raise IOError("Can not access configuration file '%s': %s"
                       % (config_file, e.strerror))
 
     lines = [l.strip() for l in f.readlines()]
     l = [l for l in lines if not l.startswith("#")]
     f.close()
+    if not l:
+        raise RuntimeError("Configuration file '%s' is empty."
+                           " No packages to build." % config_fule)
     return l
 
 
