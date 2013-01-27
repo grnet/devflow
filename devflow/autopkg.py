@@ -116,6 +116,11 @@ def main():
     parser.add_option("-c", "--config-file",
                       dest="config_file",
                       help="Override default configuration file")
+    parser.add_option("--no-sign",
+                      dest="sign",
+                      action="store_false",
+                      default=True,
+                      help="Do not sign the packages")
 
     (options, args) = parser.parse_args()
 
@@ -246,10 +251,14 @@ def main():
     print_green("Build directory: '%s'" % build_dir)
 
     cd(repo_dir)
-    call("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
-         " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
-         " -i\/version\.py --git-upstream-tag=%s"
-         % (build_dir, branch, debian_branch, upstream_tag))
+    build_cmd = "git-buildpackage --git-export-dir=%s"\
+                " --git-upstream-branch=%s --git-debian-branch=%s"\
+                " --git-export=INDEX --git-ignore-new -sa"\
+                " -i\/version\.py --git-upstream-tag=%s"\
+                % (build_dir, branch, debian_branch, upstream_tag)
+    if not options.sign:
+        build_cmd += " -uc -us"
+    call(build_cmd)
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
