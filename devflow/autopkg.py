@@ -124,6 +124,13 @@ def main():
     parser.add_option("--key-id",
                       dest="keyid",
                       help="Use this keyid for gpg signing")
+    parser.add_option("--dist",
+                      dest="dist",
+                      default="unstable",
+                      help="If running in snapshot mode, automatically set"
+                            " the changelog distribution to this value"
+                            " (default=unstable).")
+
 
     (options, args) = parser.parse_args()
 
@@ -221,7 +228,7 @@ def main():
     else:
         f = open("debian/changelog", 'r+')
         lines = f.readlines()
-        lines[0] = lines[0].replace("UNRELEASED", "unstable")
+        lines[0] = lines[0].replace("UNRELEASED", options.dist)
         lines[2] = lines[2].replace("UNRELEASED", "Snapshot build")
         f.seek(0)
         f.writelines(lines)
