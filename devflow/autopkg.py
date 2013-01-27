@@ -142,7 +142,7 @@ def main():
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
 
-    os.environ["GITFLOW_BUILD_MODE"] = mode
+    os.environ["DEVFLOW_BUILD_MODE"] = mode
 
     # Load the repository
     try:

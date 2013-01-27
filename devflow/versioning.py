@@ -132,15 +132,15 @@ def base_version(vcs_info):
 
 
 def build_mode():
-    """Determine the build mode from the value of $GITFLOW_BUILD_MODE"""
+    """Determine the build mode from the value of $DEVFLOW_BUILD_MODE"""
     try:
-        mode = os.environ["GITFLOW_BUILD_MODE"]
+        mode = os.environ["DEVFLOW_BUILD_MODE"]
         assert mode == "release" or mode == "snapshot"
     except KeyError:
-        raise ValueError("GITFLOW_BUILD_MODE environment variable is not set."
+        raise ValueError("DEVFLOW_BUILD_MODE environment variable is not set."
                          " Set this variable to 'release' or 'snapshot'")
     except AssertionError:
-        raise ValueError("GITFLOW_BUILD_MODE environment variable must be"
+        raise ValueError("DEVFLOW_BUILD_MODE environment variable must be"
                          " 'release' or 'snapshot'")
     return mode
 
