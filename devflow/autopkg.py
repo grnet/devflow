@@ -121,6 +121,9 @@ def main():
                       action="store_false",
                       default=True,
                       help="Do not sign the packages")
+    parser.add_option("--key-id",
+                      dest="keyid",
+                      help="Use this keyid for gpg signing")
 
     (options, args) = parser.parse_args()
 
@@ -258,6 +261,8 @@ def main():
                 % (build_dir, branch, debian_branch, upstream_tag)
     if not options.sign:
         build_cmd += " -uc -us"
+    elif options.keyid:
+        build_cmd += " -k\"'%s'\"" % options.keyid
     call(build_cmd)
 
     # Remove cloned repo
