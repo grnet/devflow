@@ -254,11 +254,17 @@ def main():
     print_green("Build directory: '%s'" % build_dir)
 
     cd(repo_dir)
+    version_files = []
+    for _, pkg_info in config['packages'].items():
+        version_files.append(pkg_info['version_file'])
+    ignore_regexp = "|".join(["^(%s)$" % vf for vf in version_files])
     build_cmd = "git-buildpackage --git-export-dir=%s"\
                 " --git-upstream-branch=%s --git-debian-branch=%s"\
                 " --git-export=INDEX --git-ignore-new -sa"\
-                " -i\/version\.py --git-upstream-tag=%s"\
-                % (build_dir, branch, debian_branch, upstream_tag)
+                " --source-option='\"--extend-diff-ignore=%s\"'"\
+                " --git-upstream-tag=%s"\
+                % (build_dir, branch, debian_branch, ignore_regexp,
+                   upstream_tag)
     if not options.sign:
         build_cmd += " -uc -us"
     elif options.keyid:
