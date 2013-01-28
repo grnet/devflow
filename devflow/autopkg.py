@@ -168,13 +168,8 @@ def main():
     packages = config['packages'].keys()
     print_green("Will build the following packages:\n" + "\n".join(packages))
 
-    # Clone the repo
-    repo_dir = options.repo_dir or create_temp_directory("df-repo")
-    repo = original_repo.clone(repo_dir)
-    print_green("Cloned repository to '%s'." % repo_dir)
-
     # Get current branch name and type and check if it is a valid one
-    branch = repo.head.reference.name
+    branch = original_repo.head.reference.name
     branch_type = versioning.get_branch_type(branch)
 
     if branch_type not in BRANCH_TYPES.keys():
@@ -182,14 +177,23 @@ def main():
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
 
-    # Find the debian branch
+    # Check that original repo has the correct debian branch
     debian_branch = "debian-" + branch
     origin_debian = "origin/" + debian_branch
-    if not origin_debian in repo.references:
+    if not debian_branch in original_repo.branches:
         # Get default debian branch
         default_debian = BRANCH_TYPES[branch_type].default_debian_branch
         origin_debian = "origin/" + default_debian
+        if not default_debian in original_repo.branches:
+            original_repo.git.branch(default_debian,
+                                     origin_debian)
 
+    # Clone the repo
+    repo_dir = options.repo_dir or create_temp_directory("df-repo")
+    repo = original_repo.clone(repo_dir)
+    print_green("Cloned repository to '%s'." % repo_dir)
+
+    # Create the debian branch
     repo.git.branch(debian_branch, origin_debian)
     print_green("Created branch '%s' to track '%s'" % (debian_branch,
                 origin_debian))
