@@ -83,7 +83,7 @@ def get_commit_id(commit, current_branch):
     elif len(parents) == 2:
         if cur_br_name.startswith("debian-") or cur_br_name == "debian":
             pr1, pr2 = parents
-            return short_id(pr1) + "-" + short_id(pr2)
+            return short_id(pr1) + "_" + short_id(pr2)
         else:
             return short_id(commit)
     else:
