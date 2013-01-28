@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2010, 2011, 2012 GRNET S.A. All rights reserved.
+# Copyright (C) 2012, 2013 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -38,11 +38,11 @@ import os
 import re
 import sys
 import pprint
-import subprocess
 import git
 
 from distutils import log
 from collections import namedtuple
+from configobj import ConfigObj
 
 
 # Branch types:
@@ -83,7 +83,7 @@ def get_commit_id(commit, current_branch):
     elif len(parents) == 2:
         if cur_br_name.startswith("debian-") or cur_br_name == "debian":
             pr1, pr2 = parents
-            return short_id(pr1) + "-" + short_id(pr2)
+            return short_id(pr1) + "_" + short_id(pr2)
         else:
             return short_id(commit)
     else:
@@ -133,15 +133,15 @@ def base_version(vcs_info):
 
 
 def build_mode():
-    """Determine the build mode from the value of $GITFLOW_BUILD_MODE"""
+    """Determine the build mode from the value of $DEVFLOW_BUILD_MODE"""
     try:
-        mode = os.environ["GITFLOW_BUILD_MODE"]
+        mode = os.environ["DEVFLOW_BUILD_MODE"]
         assert mode == "release" or mode == "snapshot"
     except KeyError:
-        raise ValueError("GITFLOW_BUILD_MODE environment variable is not set."
+        raise ValueError("DEVFLOW_BUILD_MODE environment variable is not set."
                          " Set this variable to 'release' or 'snapshot'")
     except AssertionError:
-        raise ValueError("GITFLOW_BUILD_MODE environment variable must be"
+        raise ValueError("DEVFLOW_BUILD_MODE environment variable must be"
                          " 'release' or 'snapshot'")
     return mode
 
@@ -428,24 +428,20 @@ def user_info():
     return "%s@%s" % (getpass.getuser(), socket.getfqdn())
 
 
-def update_version(module, name="version", root="."):
+def update_version():
     """
-    Generate or replace version.py as a submodule of `module`.
-
-    This is a helper to generate/replace a version.py file containing version
-    information as a submodule of passed `module`.
+    This is a helper to generate/replace version files containing version
+    information.
 
     """
 
-    paths = [root] + module.split(".") + ["%s.py" % name]
-    module_filename = os.path.join(*paths)
+    config = ConfigObj("devflow.conf")
 
     v = vcs_info()
     if not v:
         # Return early if not in development environment
-        log.error("Can not compute version outside of a git repository."
-                  " Will not update %s version file" % module_filename)
-        return
+        raise RuntimeError("Can not compute version outside of a git"
+                           " repository.")
     b = base_version(v)
     mode = build_mode()
     version = python_version(b, v, mode)
@@ -457,10 +453,12 @@ __version_user_info__ = "%(user_info)s"
            vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
            user_info=user_info())
 
-    module_file = file(module_filename, "w+")
-    module_file.write(content)
-    module_file.close()
-    return module_filename
+    for pkg_name, pkg_info in config['packages'].items():
+        version_filename = pkg_info['version_file']
+        log.info("Updating version file '%s'" % version_filename)
+        version_file = file(version_filename, "w+")
+        version_file.write(content)
+        version_file.close()
 
 
 def bump_version_main():

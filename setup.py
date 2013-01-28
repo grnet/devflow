@@ -1,4 +1,4 @@
-# Copyright 2012 GRNET S.A. All rights reserved.
+# Copyright 2012, 2013 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -42,15 +42,6 @@ from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
-try:
-    from devflow import versioning
-    # use devflow to update the version file
-    versioning.update_version('devflow', 'version', HERE)
-except ImportError:
-    version_fpath = os.path.join(HERE, 'devflow', 'version.py')
-    sys.stdout.write("WARNING: Can not update version because `devflow` is"
-                    " not installed. Please make sure to manually"
-                    " update version file %s" % version_fpath)
 
 from devflow.version import __version__
 
@@ -68,7 +59,7 @@ CLASSIFIERS = []
 
 # Package requirements
 INSTALL_REQUIRES = [
-    'gitpython', 'sh',
+    'gitpython', 'sh', 'configobj'
 ]
 
 # Provided as an attribute, so you can append to these instead
@@ -187,6 +178,7 @@ setup(
      'console_scripts': [
          'devflow-version=devflow.versioning:main',
          'devflow-bump-version=devflow.versioning:bump_version_main',
+         'devflow-update-version=devflow.versioning:update_version',
          'devflow-autopkg=devflow.autopkg:main',
          ],
       },
