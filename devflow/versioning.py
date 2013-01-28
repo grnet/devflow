@@ -42,6 +42,7 @@ import git
 
 from distutils import log
 from collections import namedtuple
+from configobj import ConfigObj
 
 
 # Branch types:
@@ -427,24 +428,20 @@ def user_info():
     return "%s@%s" % (getpass.getuser(), socket.getfqdn())
 
 
-def update_version(module, name="version", root="."):
+def update_version():
     """
-    Generate or replace version.py as a submodule of `module`.
-
-    This is a helper to generate/replace a version.py file containing version
-    information as a submodule of passed `module`.
+    This is a helper to generate/replace version files containing version
+    information.
 
     """
 
-    paths = [root] + module.split(".") + ["%s.py" % name]
-    module_filename = os.path.join(*paths)
+    config = ConfigObj("devflow.conf")
 
     v = vcs_info()
     if not v:
         # Return early if not in development environment
-        log.error("Can not compute version outside of a git repository."
-                  " Will not update %s version file" % module_filename)
-        return
+        raise RuntimeError("Can not compute version outside of a git"
+                           " repository.")
     b = base_version(v)
     mode = build_mode()
     version = python_version(b, v, mode)
@@ -456,10 +453,12 @@ __version_user_info__ = "%(user_info)s"
            vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
            user_info=user_info())
 
-    module_file = file(module_filename, "w+")
-    module_file.write(content)
-    module_file.close()
-    return module_filename
+    for pkg_name, pkg_info in config['packages'].items():
+        version_filename = pkg_info['version_file']
+        log.info("Updating version file '%s'" % version_filename)
+        version_file = file(version_filename, "w+")
+        version_file.write(content)
+        version_file.close()
 
 
 def bump_version_main():

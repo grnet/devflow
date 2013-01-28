@@ -32,17 +32,14 @@
 #or implied, of GRNET S.A.
 
 import sys
-import os
 try:
     from devflow import versioning
 except ImportError:
     raise RuntimeError("devflow is build dependency")
 
-HERE = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
-
 
 def main():
-    versioning.update_version("devflow", "version", HERE)
+    versioning.update_version()
 
 
 if __name__ == "__main__":

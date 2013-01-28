@@ -37,6 +37,7 @@ import sys
 from optparse import OptionParser
 from collections import namedtuple
 from sh import mktemp, cd, rm, git_dch, python
+from configobj import ConfigObj
 
 from devflow import versioning
 
@@ -162,8 +163,9 @@ def main():
         raise RuntimeError(red("Repository %s is dirty." % toplevel))
 
     # Get packages from configuration file
-    config_file = options.config_file or os.path.join(toplevel, "autopkg.conf")
-    packages = get_packages_to_build(config_file)
+    config_file = options.config_file or os.path.join(toplevel, "devflow.conf")
+    config = ConfigObj(config_file)
+    packages = config['packages'].keys()
     print_green("Will build the following packages:\n" + "\n".join(packages))
 
     # Clone the repo
@@ -291,23 +293,6 @@ def main():
             print
             for obj in [debian_branch, branch_tag, debian_branch_tag]:
                 print_green("git push %s %s" % (remote, obj))
-
-
-def get_packages_to_build(config_file):
-    config_file = os.path.abspath(config_file)
-    try:
-        f = open(config_file)
-    except IOError as e:
-        raise IOError("Can not access configuration file '%s': %s"
-                      % (config_file, e.strerror))
-
-    lines = [l.strip() for l in f.readlines()]
-    l = [l for l in lines if not l.startswith("#")]
-    f.close()
-    if not l:
-        raise RuntimeError("Configuration file '%s' is empty."
-                           " No packages to build." % config_fule)
-    return l
 
 
 def create_temp_directory(suffix):
