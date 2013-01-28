@@ -131,7 +131,6 @@ def main():
                             " the changelog distribution to this value"
                             " (default=unstable).")
 
-
     (options, args) = parser.parse_args()
 
     if options.help:
@@ -208,6 +207,9 @@ def main():
         debian_version_from_python_version(python_version)
     print_green("The new debian version will be: '%s'" % debian_version)
 
+    # Update the version files
+    python("update_version.py", _out=sys.stdout)
+
     # Tag branch with python version
     branch_tag = python_version
     repo.git.tag(branch_tag, branch)
@@ -241,17 +243,6 @@ def main():
     # Tag debian branch
     debian_branch_tag = "debian/" + branch_tag
     repo.git.tag(debian_branch_tag)
-
-    # Update the python version files
-    # TODO: remove this
-    for package in packages:
-        # python setup.py should run in its directory
-        cd(package)
-        package_dir = repo_dir + "/" + package
-        res = python(package_dir + "/setup.py", "sdist", _out=sys.stdout)
-        print res.stdout
-        if package != ".":
-            cd("../")
 
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")

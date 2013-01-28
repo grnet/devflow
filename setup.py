@@ -42,15 +42,6 @@ from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
-try:
-    from devflow import versioning
-    # use devflow to update the version file
-    versioning.update_version('devflow', 'version', HERE)
-except ImportError:
-    version_fpath = os.path.join(HERE, 'devflow', 'version.py')
-    sys.stdout.write("WARNING: Can not update version because `devflow` is"
-                    " not installed. Please make sure to manually"
-                    " update version file %s" % version_fpath)
 
 from devflow.version import __version__
 
