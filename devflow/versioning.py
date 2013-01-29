@@ -321,8 +321,8 @@ def python_version(base_version, vcs_info, mode):
 
     if ((snap and not btype.builds_snapshot) or
         (not snap and not btype.builds_release)):  # nopep8
-            raise ValueError("Invalid mode '%s' in branch type '%s'" %
-                             (mode, btypestr))
+        raise ValueError("Invalid mode '%s' in branch type '%s'" %
+                         (mode, btypestr))
 
     if snap:
         v = "%s_%d_%s" % (base_version, vcs_info.revno, vcs_info.revid)
@@ -453,7 +453,7 @@ __version_user_info__ = "%(user_info)s"
            vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
            user_info=user_info())
 
-    for pkg_name, pkg_info in config['packages'].items():
+    for _pkg_name, pkg_info in config['packages'].items():
         version_filename = pkg_info['version_file']
         log.info("Updating version file '%s'" % version_filename)
         version_file = file(version_filename, "w+")
@@ -492,7 +492,7 @@ def bump_version(new_version):
     lines = f.readlines()
     for i in range(0, len(lines)):
         if not lines[i].startswith("#"):
-                lines[i] = lines[i].replace(old_version, new_version)
+            lines[i] = lines[i].replace(old_version, new_version)
     f.seek(0)
     f.truncate(0)
     f.writelines(lines)
