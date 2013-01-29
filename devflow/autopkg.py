@@ -129,8 +129,8 @@ def main():
                       dest="dist",
                       default="unstable",
                       help="If running in snapshot mode, automatically set"
-                            " the changelog distribution to this value"
-                            " (default=unstable).")
+                           " the changelog distribution to this value"
+                           " (default=unstable).")
 
     (options, args) = parser.parse_args()
 
@@ -170,9 +170,9 @@ def main():
 
     # Get current branch name and type and check if it is a valid one
     branch = original_repo.head.reference.name
-    branch_type = versioning.get_branch_type(branch)
+    branch_type_str = versioning.get_branch_type(branch)
 
-    if branch_type not in BRANCH_TYPES.keys():
+    if branch_type_str not in BRANCH_TYPES.keys():
         allowed_branches = ", ".join(BRANCH_TYPES.keys())
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
@@ -182,7 +182,7 @@ def main():
     origin_debian = "origin/" + debian_branch
     if not debian_branch in original_repo.branches:
         # Get default debian branch
-        default_debian = BRANCH_TYPES[branch_type].default_debian_branch
+        default_debian = BRANCH_TYPES[branch_type_str].default_debian_branch
         origin_debian = "origin/" + default_debian
         if not default_debian in original_repo.branches:
             original_repo.git.branch(default_debian,
@@ -314,11 +314,6 @@ def call(cmd):
     rc = os.system(cmd)
     if rc:
         raise RuntimeError("Command '%s' failed!" % cmd)
-
-
-def create_temp_directory(suffix):
-    create_dir_cmd = mktemp("-d", "/tmp/" + suffix + "-XXXXX")
-    return create_dir_cmd.stdout.strip()
 
 
 if __name__ == "__main__":
