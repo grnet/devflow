@@ -455,10 +455,11 @@ __version_user_info__ = "%(user_info)s"
 
     for _pkg_name, pkg_info in config['packages'].items():
         version_filename = pkg_info['version_file']
-        log.info("Updating version file '%s'" % version_filename)
-        version_file = file(version_filename, "w+")
-        version_file.write(content)
-        version_file.close()
+        if version_filename:
+            log.info("Updating version file '%s'" % version_filename)
+            version_file = file(version_filename, "w+")
+            version_file.write(content)
+            version_file.close()
 
 
 def bump_version_main():
