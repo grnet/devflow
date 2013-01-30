@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
+set -e
 
 BUILD_NUMBER=$1
 BUILDBOT_BUILD_DIR=buildpkg_debian
