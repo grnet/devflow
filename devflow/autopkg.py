@@ -214,7 +214,7 @@ def main():
     print_green("The new debian version will be: '%s'" % debian_version)
 
     # Update the version files
-    python("update_version.py", _out=sys.stdout)
+    versioning.update_version()
 
     # Tag branch with python version
     branch_tag = python_version
