@@ -156,7 +156,7 @@ setup(
     name='devflow',
     version=VERSION,
     license='BSD',
-    url='http://www.synnefo.ogr/',
+    url='http://www.synnefo.org/',
     description=SHORT_DESCRIPTION,
     long_description=README + '\n\n' + CHANGES,
     classifiers=CLASSIFIERS,
