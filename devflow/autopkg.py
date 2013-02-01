@@ -36,7 +36,7 @@ import os
 import sys
 from optparse import OptionParser
 from collections import namedtuple
-from sh import mktemp, cd, rm, git_dch, python
+from sh import mktemp, cd, rm, git_dch
 from configobj import ConfigObj
 
 from devflow import versioning
