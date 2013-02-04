@@ -10,5 +10,5 @@ Homepage: https://code.grnet.gr/projects/gitflow
 
 Package: devflow
 Architecture: all
-Depends: ${python:Depends}, devscripts (=2.10.69+squeeze4), pbuilder(=0.199+nmu1squeeze1)
+Depends: ${python:Depends}
 Description: A set of tools to ease versioning and use of git flow.
