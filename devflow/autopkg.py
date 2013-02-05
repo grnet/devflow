@@ -31,12 +31,14 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
+"""Helper script for automatic build of debian packages."""
+
 import git
 import os
 import sys
 from optparse import OptionParser
 from collections import namedtuple
-from sh import mktemp, cd, rm, git_dch
+from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
 from configobj import ConfigObj
 
 from devflow import versioning
