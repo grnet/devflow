@@ -154,7 +154,7 @@ def main():
     # Load the repository
     try:
         original_repo = git.Repo(".")
-    except git.git.InvalidGitRepositoryError:
+    except git.InvalidGitRepositoryError:
         raise RuntimeError(red("Current directory is not git repository."))
 
     # Check that repository is clean
