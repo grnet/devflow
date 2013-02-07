@@ -1,3 +1,9 @@
+devflow (0.6-1) unstable; urgency=low
+
+  * New release 0.6
+
+ -- Chris Stavrakakis <cstavr@grnet.gr>  Thu, 07 Feb 2013 15:31:01 +0200
+
 devflow (0.1) unstable; urgency=low
 
   * Initial debian packaging for devflow.
