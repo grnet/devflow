@@ -33,7 +33,6 @@ load-plugins=
 # can either give multiple identifier separated by comma (,) or put this option
 # multiple time.
 #disable=
-disable-msg=W0511,R0922,W0201
 disable=W0511,R0922,W0201,R0922,R0801,I0011,C0111
 disable-checker=similarities
 
