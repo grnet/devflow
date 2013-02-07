@@ -31,12 +31,14 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
+"""Helper script for automatic build of debian packages."""
+
 import git
 import os
 import sys
 from optparse import OptionParser
 from collections import namedtuple
-from sh import mktemp, cd, rm, git_dch, python
+from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
 from configobj import ConfigObj
 
 from devflow import versioning
@@ -154,7 +156,7 @@ def main():
     # Load the repository
     try:
         original_repo = git.Repo(".")
-    except git.git.InvalidGitRepositoryError:
+    except git.InvalidGitRepositoryError:
         raise RuntimeError(red("Current directory is not git repository."))
 
     # Check that repository is clean
@@ -214,7 +216,7 @@ def main():
     print_green("The new debian version will be: '%s'" % debian_version)
 
     # Update the version files
-    python("update_version.py", _out=sys.stdout)
+    versioning.update_version()
 
     # Tag branch with python version
     branch_tag = python_version

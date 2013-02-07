@@ -33,6 +33,13 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
+"""Helper functions for automatic version computation.
+
+This module contains helper functions for extracting information
+from a Git repository, and computing the python and debian version
+of the repository code.
+
+"""
 
 import os
 import re
@@ -40,7 +47,7 @@ import sys
 import pprint
 import git
 
-from distutils import log
+from distutils import log  # pylint: disable=E0611
 from collections import namedtuple
 from configobj import ConfigObj
 
@@ -90,9 +97,8 @@ def get_commit_id(commit, current_branch):
         raise RuntimeError("Commit %s has more than 2 parents!" % commit)
 
 
-def vcs_info():
-    """
-    Return current git HEAD commit information.
+def get_vcs_info():
+    """Return current git HEAD commit information.
 
     Returns a tuple containing
         - branch name
@@ -120,16 +126,16 @@ def vcs_info():
                 toplevel=toplevel)
 
 
-def base_version(vcs_info):
+def get_base_version(vcs_info):
     """Determine the base version from a file in the repository"""
 
     f = open(os.path.join(vcs_info.toplevel, BASE_VERSION_FILE))
     lines = [l.strip() for l in f.readlines()]
-    l = [l for l in lines if not l.startswith("#")]
-    if len(l) != 1:
+    lines = [l for l in lines if not l.startswith("#")]
+    if len(lines) != 1:
         raise ValueError("File '%s' should contain a single non-comment line.")
     f.close()
-    return l[0]
+    return lines[0]
 
 
 def build_mode():
@@ -404,8 +410,8 @@ def debian_version_from_python_version(pyver):
 
 
 def get_python_version():
-    v = vcs_info()
-    b = base_version(v)
+    v = get_vcs_info()
+    b = get_base_version(v)
     mode = build_mode()
     return python_version(b, v, mode)
 
@@ -416,8 +422,8 @@ def debian_version(base_version, vcs_info, mode):
 
 
 def get_debian_version():
-    v = vcs_info()
-    b = base_version(v)
+    v = get_vcs_info()
+    b = get_base_version(v)
     mode = build_mode()
     return debian_version(b, v, mode)
 
@@ -429,36 +435,39 @@ def user_info():
 
 
 def update_version():
-    """
-    This is a helper to generate/replace version files containing version
+    """Generate or replace version files
+
+    Helper function for generating/replacing version files containing version
     information.
 
     """
 
     config = ConfigObj("devflow.conf")
 
-    v = vcs_info()
+    v = get_vcs_info()
     if not v:
         # Return early if not in development environment
         raise RuntimeError("Can not compute version outside of a git"
                            " repository.")
-    b = base_version(v)
+    b = get_base_version(v)
     mode = build_mode()
     version = python_version(b, v, mode)
+    vcs_info_dict = v._asdict()  # pylint: disable=W0212
     content = """__version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
 __version_user_info__ = "%(user_info)s"
 """ % dict(version=version, version_info=version.split("."),
-           vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
+           vcs_info=pprint.PrettyPrinter().pformat(vcs_info_dict),
            user_info=user_info())
 
     for _pkg_name, pkg_info in config['packages'].items():
         version_filename = pkg_info['version_file']
-        log.info("Updating version file '%s'" % version_filename)
-        version_file = file(version_filename, "w+")
-        version_file.write(content)
-        version_file.close()
+        if version_filename:
+            log.info("Updating version file '%s'" % version_filename)
+            version_file = file(version_filename, "w+")
+            version_file.write(content)
+            version_file.close()
 
 
 def bump_version_main():
@@ -472,7 +481,7 @@ def bump_version_main():
 
 def bump_version(new_version):
     """Set new base version to base version file and commit"""
-    v = vcs_info()
+    v = get_vcs_info()
     mode = build_mode()
 
     # Check that new base version is valid
@@ -481,7 +490,7 @@ def bump_version(new_version):
     repo = git.Repo(".")
     toplevel = repo.working_dir
 
-    old_version = base_version(v)
+    old_version = get_base_version(v)
     sys.stdout.write("Current base version is '%s'\n" % old_version)
 
     version_file = toplevel + "/version"
@@ -504,8 +513,8 @@ def bump_version(new_version):
 
 
 def main():
-    v = vcs_info()
-    b = base_version(v)
+    v = get_vcs_info()
+    b = get_base_version(v)
     mode = build_mode()
 
     try:

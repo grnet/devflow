@@ -43,7 +43,13 @@ from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
 
-from devflow.version import __version__
+try:
+    from devflow.version import __version__
+except ImportError:
+    # Bootstrap devflow
+    from devflow.versioning import update_version
+    update_version()
+    from devflow.version import __version__
 
 # Package info
 VERSION = __version__
@@ -59,7 +65,7 @@ CLASSIFIERS = []
 
 # Package requirements
 INSTALL_REQUIRES = [
-    'gitpython', 'sh', 'configobj'
+    'gitpython', 'sh', 'configobj', 'ansicolors'
 ]
 
 # Provided as an attribute, so you can append to these instead
@@ -156,7 +162,7 @@ setup(
     name='devflow',
     version=VERSION,
     license='BSD',
-    url='http://www.synnefo.ogr/',
+    url='http://www.synnefo.org/',
     description=SHORT_DESCRIPTION,
     long_description=README + '\n\n' + CHANGES,
     classifiers=CLASSIFIERS,
