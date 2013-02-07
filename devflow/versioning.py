@@ -452,7 +452,7 @@ def update_version():
     b = get_base_version(v)
     mode = build_mode()
     version = python_version(b, v, mode)
-    vcs_info_dict = v._asdict()  # pylint: disable=W0212
+    vcs_info_dict = dict(v._asdict())  # pylint: disable=W0212
     content = """__version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
