@@ -47,7 +47,7 @@ import sys
 import pprint
 import git
 
-from distutils import log
+from distutils import log  # pylint: disable=E0611
 from collections import namedtuple
 from configobj import ConfigObj
 
