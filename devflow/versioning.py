@@ -141,7 +141,7 @@ def get_base_version(vcs_info):
 def build_mode():
     """Determine the build mode from the value of $DEVFLOW_BUILD_MODE"""
     try:
-        mode = os.environ["DEVFLOW_BUILD_MODE"]
+        mode = os.environ.get("DEVFLOW_BUILD_MODE", "snapshot")
         assert mode == "release" or mode == "snapshot"
     except KeyError:
         raise ValueError("DEVFLOW_BUILD_MODE environment variable is not set."
