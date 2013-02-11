@@ -192,7 +192,7 @@ def main():
 
     # Clone the repo
     repo_dir = options.repo_dir or create_temp_directory("df-repo")
-    repo = original_repo.clone(repo_dir)
+    repo = original_repo.clone(repo_dir, branch=branch)
     print_green("Cloned repository to '%s'." % repo_dir)
 
     # Create the debian branch
