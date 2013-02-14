@@ -192,8 +192,13 @@ def main():
 
     # Clone the repo
     repo_dir = options.repo_dir or create_temp_directory("df-repo")
+    repo_dir = os.path.abspath(repo_dir)
     repo = original_repo.clone(repo_dir, branch=branch)
     print_green("Cloned repository to '%s'." % repo_dir)
+
+    build_dir = options.build_dir or create_temp_directory("df-build")
+    build_dir = os.path.abspath(build_dir)
+    print_green("Build directory: '%s'" % build_dir)
 
     # Create the debian branch
     repo.git.branch(debian_branch, origin_debian)
@@ -256,9 +261,6 @@ def main():
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
 
     # Create debian packages
-    build_dir = options.build_dir or create_temp_directory("df-build")
-    print_green("Build directory: '%s'" % build_dir)
-
     cd(repo_dir)
     version_files = []
     for _, pkg_info in config['packages'].items():
