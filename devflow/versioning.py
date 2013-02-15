@@ -442,9 +442,10 @@ def update_version():
 
     """
 
-    config = ConfigObj("devflow.conf")
-
     v = get_vcs_info()
+    toplevel = v.toplevel + "/"
+
+    config = ConfigObj(toplevel + "devflow.conf")
     if not v:
         # Return early if not in development environment
         raise RuntimeError("Can not compute version outside of a git"
@@ -465,7 +466,7 @@ __version_user_info__ = "%(user_info)s"
         version_filename = pkg_info['version_file']
         if version_filename:
             log.info("Updating version file '%s'" % version_filename)
-            version_file = file(version_filename, "w+")
+            version_file = file(toplevel + version_filename, "w+")
             version_file.write(content)
             version_file.close()
 
