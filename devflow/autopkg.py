@@ -90,7 +90,7 @@ def print_help(prog):
 
 
 def main():
-    from devflow.version import __version__
+    from devflow.version import __version__  # pylint: disable=E0611,F0401
     parser = OptionParser(usage="usage: %prog [options] mode",
                           version="devflow %s" % __version__,
                           add_help_option=False)
