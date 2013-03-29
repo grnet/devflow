@@ -45,12 +45,12 @@ import os
 import re
 import sys
 import pprint
-import git
 
 from distutils import log  # pylint: disable=E0611
 from collections import namedtuple
 from configobj import ConfigObj
 
+from devflow import utils
 
 # Branch types:
 # builds_snapshot: Whether the branch can produce snapshot builds
@@ -71,59 +71,6 @@ BRANCH_TYPES = {
     "hotfix": branch_type(True, True, True,
                           "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE)}
 BASE_VERSION_FILE = "version"
-
-
-def get_commit_id(commit, current_branch):
-    """Return the commit ID
-
-    If the commit is a 'merge' commit, and one of the parents is a
-    debian branch we return a compination of the parents commits.
-
-    """
-    def short_id(commit):
-        return commit.hexsha[0:7]
-
-    parents = commit.parents
-    cur_br_name = current_branch.name
-    if len(parents) == 1:
-        return short_id(commit)
-    elif len(parents) == 2:
-        if cur_br_name.startswith("debian-") or cur_br_name == "debian":
-            pr1, pr2 = parents
-            return short_id(pr1) + "_" + short_id(pr2)
-        else:
-            return short_id(commit)
-    else:
-        raise RuntimeError("Commit %s has more than 2 parents!" % commit)
-
-
-def get_vcs_info():
-    """Return current git HEAD commit information.
-
-    Returns a tuple containing
-        - branch name
-        - commit id
-        - commit count
-        - git describe output
-        - path of git toplevel directory
-
-    """
-    try:
-        repo = git.Repo(".")
-        branch = repo.head.reference
-        revid = get_commit_id(branch.commit, branch)
-        revno = len(list(repo.iter_commits()))
-        toplevel = repo.working_dir
-    except git.InvalidGitRepositoryError:
-        log.error("Could not retrieve git information. " +
-                  "Current directory not a git repository?")
-        return None
-
-    info = namedtuple("vcs_info", ["branch", "revid", "revno",
-                                   "toplevel"])
-
-    return info(branch=branch.name, revid=revid, revno=revno,
-                toplevel=toplevel)
 
 
 def get_base_version(vcs_info):
@@ -406,11 +353,25 @@ def debian_version_from_python_version(pyver):
     True
 
     """
-    return pyver.replace("_", "~").replace("rc", "~rc") + "-1"
+    version = pyver.replace("_", "~").replace("rc", "~rc")
+    minor = get_revision(version)
+    return version + "-" + str(minor)
+
+
+def get_revision(version):
+    """Find revision for a debian version"""
+    repo = utils.get_repository()
+    minor = 1
+    while True:
+        tag = "debian/" + version + "-" + str(minor)
+        if tag in repo.tags:
+            minor += 1
+        else:
+            return minor
 
 
 def get_python_version():
-    v = get_vcs_info()
+    v = utils.get_vcs_info()
     b = get_base_version(v)
     mode = build_mode()
     return python_version(b, v, mode)
@@ -422,7 +383,7 @@ def debian_version(base_version, vcs_info, mode):
 
 
 def get_debian_version():
-    v = get_vcs_info()
+    v = utils.get_vcs_info()
     b = get_base_version(v)
     mode = build_mode()
     return debian_version(b, v, mode)
@@ -442,7 +403,7 @@ def update_version():
 
     """
 
-    v = get_vcs_info()
+    v = utils.get_vcs_info()
     toplevel = v.toplevel + "/"
 
     config = ConfigObj(toplevel + "devflow.conf")
@@ -482,13 +443,13 @@ def bump_version_main():
 
 def bump_version(new_version):
     """Set new base version to base version file and commit"""
-    v = get_vcs_info()
+    v = utils.get_vcs_info()
     mode = build_mode()
 
     # Check that new base version is valid
     python_version(new_version, v, mode)
 
-    repo = git.Repo(".")
+    repo = utils.get_repository()
     toplevel = repo.working_dir
 
     old_version = get_base_version(v)
@@ -514,7 +475,7 @@ def bump_version(new_version):
 
 
 def main():
-    v = get_vcs_info()
+    v = utils.get_vcs_info()
     b = get_base_version(v)
     mode = build_mode()
 

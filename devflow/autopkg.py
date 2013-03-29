@@ -33,7 +33,6 @@
 
 """Helper script for automatic build of debian packages."""
 
-import git
 import os
 import sys
 from optparse import OptionParser
@@ -42,6 +41,7 @@ from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
 from configobj import ConfigObj
 
 from devflow import versioning
+from devflow import utils
 
 try:
     from colors import red, green
@@ -154,10 +154,7 @@ def main():
     os.environ["DEVFLOW_BUILD_MODE"] = mode
 
     # Load the repository
-    try:
-        original_repo = git.Repo(".")
-    except git.InvalidGitRepositoryError:
-        raise RuntimeError(red("Current directory is not git repository."))
+    original_repo = utils.get_repository()
 
     # Check that repository is clean
     toplevel = original_repo.working_dir
