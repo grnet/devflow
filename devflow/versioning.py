@@ -470,7 +470,7 @@ def bump_version(new_version):
     f.close()
 
     repo.git.add(version_file)
-    repo.git.commit(m="Bump version")
+    repo.git.commit(m="Bump version to %s" % new_version)
     sys.stdout.write("Update version file and commited\n")
 
 
