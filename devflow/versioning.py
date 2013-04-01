@@ -86,16 +86,18 @@ def get_base_version(vcs_info):
 
 
 def build_mode():
-    """Determine the build mode from the value of $DEVFLOW_BUILD_MODE"""
-    try:
-        mode = os.environ.get("DEVFLOW_BUILD_MODE", "snapshot")
-        assert mode == "release" or mode == "snapshot"
-    except KeyError:
-        raise ValueError("DEVFLOW_BUILD_MODE environment variable is not set."
-                         " Set this variable to 'release' or 'snapshot'")
-    except AssertionError:
-        raise ValueError("DEVFLOW_BUILD_MODE environment variable must be"
-                         " 'release' or 'snapshot'")
+    """Determine the build mode"""
+    # Get it from environment if exists
+    mode = os.environ.get("DEVFLOW_BUILD_MODE", None)
+    if mode is None:
+        branch = utils.get_vcs_info().branch
+        try:
+            br_type = BRANCH_TYPES[branch]
+        except KeyError:
+            allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
+            raise ValueError("Malformed branch name '%s', cannot classify as"
+                             " one of %s" % (branch, allowed_branches))
+        mode = "snapshot" if br_type.builds_snapshot else "release"
     return mode
 
 
