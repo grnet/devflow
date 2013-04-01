@@ -43,9 +43,18 @@ from devflow import versioning
 from devflow import utils
 from devflow import BRANCH_TYPES
 
-try:
-    from colors import red, green
-except ImportError:
+if sys.stdout.isatty():
+    try:
+        import colors
+        use_colors = True
+    except AttributeError:
+        use_colors = False
+
+
+if use_colors:
+    red = colors.red
+    green = colors.green
+else:
     red = lambda x: x
     green = lambda x: x
 
