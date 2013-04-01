@@ -284,9 +284,8 @@ def main():
         print_green("To update repositories '%s' and '%s' go to '%s' and run:"
                     % (toplevel, origin, repo_dir))
         for remote in ['origin', 'original_origin']:
-            print
-            for obj in [debian_branch, branch_tag, debian_branch_tag]:
-                print_green("git push %s %s" % (remote, obj))
+            objects = [debian_branch, branch_tag, debian_branch_tag]
+            print_green("git push %s %s" % (remote, " ".join(objects)))
 
 
 def create_temp_directory(suffix):
