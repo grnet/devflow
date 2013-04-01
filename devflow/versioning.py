@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (C) 2010, 2011, 2012 GRNET S.A. All rights reserved.
+# Copyright (C) 2012, 2013 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -33,116 +33,36 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
+"""Helper functions for automatic version computation.
+
+This module contains helper functions for extracting information
+from a Git repository, and computing the python and debian version
+of the repository code.
+
+"""
 
 import os
 import re
 import sys
 import pprint
-import subprocess
-import git
 
-from distutils import log
-from collections import namedtuple
+from distutils import log  # pylint: disable=E0611
+from configobj import ConfigObj
 
-
-# Branch types:
-# builds_snapshot: Whether the branch can produce snapshot builds
-# builds_release: Whether the branch can produce release builds
-# versioned: Whether the name of the branch defines a specific version
-# allowed_version_re: A regular expression describing allowed values for
-#                     base_version in this branch
-branch_type = namedtuple("branch_type", ["builds_snapshot", "builds_release",
-                                         "versioned", "allowed_version_re"])
-VERSION_RE = "[0-9]+\.[0-9]+(\.[0-9]+)*"
-BRANCH_TYPES = {
-    "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE),
-    "develop": branch_type(True, False, False, "^%snext$" % VERSION_RE),
-    "release": branch_type(True, True, True,
-                           "^(?P<bverstr>%s)rc[1-9][0-9]*$" % VERSION_RE),
-    "master": branch_type(False, True, False,
-                          "^%s$" % VERSION_RE),
-    "hotfix": branch_type(True, True, True,
-                          "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE)}
-BASE_VERSION_FILE = "version"
+from devflow import BRANCH_TYPES, BASE_VERSION_FILE
+from devflow import utils
 
 
-def get_commit_id(commit, current_branch):
-    """Return the commit ID
-
-    If the commit is a 'merge' commit, and one of the parents is a
-    debian branch we return a compination of the parents commits.
-
-    """
-    def short_id(commit):
-        return commit.hexsha[0:7]
-
-    parents = commit.parents
-    cur_br_name = current_branch.name
-    if len(parents) == 1:
-        return short_id(commit)
-    elif len(parents) == 2:
-        if cur_br_name.startswith("debian-") or cur_br_name == "debian":
-            pr1, pr2 = parents
-            return short_id(pr1) + "-" + short_id(pr2)
-        else:
-            return short_id(commit)
-    else:
-        raise RuntimeError("Commit %s has more than 2 parents!" % commit)
-
-
-def vcs_info():
-    """
-    Return current git HEAD commit information.
-
-    Returns a tuple containing
-        - branch name
-        - commit id
-        - commit count
-        - git describe output
-        - path of git toplevel directory
-
-    """
-    try:
-        repo = git.Repo(".")
-        branch = repo.head.reference
-        revid = get_commit_id(branch.commit, branch)
-        revno = len(list(repo.iter_commits()))
-        toplevel = repo.working_dir
-    except git.InvalidGitRepositoryError:
-        log.error("Could not retrieve git information. " +
-                  "Current directory not a git repository?")
-        return None
-
-    info = namedtuple("vcs_info", ["branch", "revid", "revno",
-                                   "toplevel"])
-
-    return info(branch=branch.name, revid=revid, revno=revno,
-                toplevel=toplevel)
-
-
-def base_version(vcs_info):
+def get_base_version(vcs_info):
     """Determine the base version from a file in the repository"""
 
     f = open(os.path.join(vcs_info.toplevel, BASE_VERSION_FILE))
     lines = [l.strip() for l in f.readlines()]
-    l = [l for l in lines if not l.startswith("#")]
-    if len(l) != 1:
+    lines = [l for l in lines if not l.startswith("#")]
+    if len(lines) != 1:
         raise ValueError("File '%s' should contain a single non-comment line.")
-    return l[0]
-
-
-def build_mode():
-    """Determine the build mode from the value of $GITFLOW_BUILD_MODE"""
-    try:
-        mode = os.environ["GITFLOW_BUILD_MODE"]
-        assert mode == "release" or mode == "snapshot"
-    except KeyError:
-        raise ValueError("GITFLOW_BUILD_MODE environment variable is not set."
-                         " Set this variable to 'release' or 'snapshot'")
-    except AssertionError:
-        raise ValueError("GITFLOW_BUILD_MODE environment variable must be"
-                         " 'release' or 'snapshot'")
-    return mode
+    f.close()
+    return lines[0]
 
 
 def normalize_branch_name(branch_name):
@@ -285,7 +205,6 @@ def python_version(base_version, vcs_info, mode):
 
     branch = vcs_info.branch
 
-
     brnorm = normalize_branch_name(branch)
     btypestr = get_branch_type(brnorm)
 
@@ -320,7 +239,7 @@ def python_version(base_version, vcs_info, mode):
     snap = (mode == "snapshot")
 
     if ((snap and not btype.builds_snapshot) or
-        (not snap and not btype.builds_release)):
+        (not snap and not btype.builds_release)):  # nopep8
         raise ValueError("Invalid mode '%s' in branch type '%s'" %
                          (mode, btypestr))
 
@@ -400,13 +319,27 @@ def debian_version_from_python_version(pyver):
     True
 
     """
-    return pyver.replace("_", "~").replace("rc", "~rc") + "-1"
+    version = pyver.replace("_", "~").replace("rc", "~rc")
+    minor = get_revision(version)
+    return version + "-" + str(minor)
+
+
+def get_revision(version):
+    """Find revision for a debian version"""
+    repo = utils.get_repository()
+    minor = 1
+    while True:
+        tag = "debian/" + version + "-" + str(minor)
+        if tag in repo.tags:
+            minor += 1
+        else:
+            return minor
 
 
 def get_python_version():
-    v = vcs_info()
-    b = base_version(v)
-    mode = build_mode()
+    v = utils.get_vcs_info()
+    b = get_base_version(v)
+    mode = utils.get_build_mode()
     return python_version(b, v, mode)
 
 
@@ -416,9 +349,9 @@ def debian_version(base_version, vcs_info, mode):
 
 
 def get_debian_version():
-    v = vcs_info()
-    b = base_version(v)
-    mode = build_mode()
+    v = utils.get_vcs_info()
+    b = get_base_version(v)
+    mode = utils.get_build_mode()
     return debian_version(b, v, mode)
 
 
@@ -428,46 +361,89 @@ def user_info():
     return "%s@%s" % (getpass.getuser(), socket.getfqdn())
 
 
-def update_version(module, name="version", root="."):
+def update_version():
+    """Generate or replace version files
+
+    Helper function for generating/replacing version files containing version
+    information.
+
     """
-    Generate or replace version.py as a submodule of `module`.
 
-    This is a helper to generate/replace a version.py file containing version
-    information as a submodule of passed `module`.
+    v = utils.get_vcs_info()
+    toplevel = v.toplevel + "/"
 
-    """
-
-    paths = [root] + module.split(".") + ["%s.py" % name]
-    module_filename = os.path.join(*paths)
-
-    v = vcs_info()
+    config = ConfigObj(toplevel + "devflow.conf")
     if not v:
         # Return early if not in development environment
-        log.error("Can not compute version outside of a git repository."
-                  " Will not update %s version file" % module_filename)
-        return
-    b = base_version(v)
-    mode = build_mode()
+        raise RuntimeError("Can not compute version outside of a git"
+                           " repository.")
+    b = get_base_version(v)
+    mode = utils.get_build_mode()
     version = python_version(b, v, mode)
-    content = """
-__version__ = "%(version)s"
+    vcs_info_dict = dict(v._asdict())  # pylint: disable=W0212
+    content = """__version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
 __version_user_info__ = "%(user_info)s"
 """ % dict(version=version, version_info=version.split("."),
-               vcs_info=pprint.PrettyPrinter().pformat(dict(v._asdict())),
-               user_info=user_info())
+           vcs_info=pprint.PrettyPrinter().pformat(vcs_info_dict),
+           user_info=user_info())
 
-    module_file = file(module_filename, "w+")
-    module_file.write(content)
-    module_file.close()
-    return module_filename
+    for _pkg_name, pkg_info in config['packages'].items():
+        version_filename = pkg_info['version_file']
+        if version_filename:
+            log.info("Updating version file '%s'" % version_filename)
+            version_file = file(toplevel + version_filename, "w+")
+            version_file.write(content)
+            version_file.close()
+
+
+def bump_version_main():
+    try:
+        version = sys.argv[1]
+        bump_version(version)
+    except IndexError:
+        sys.stdout.write("Give me a version %s!\n")
+        sys.stdout.write("usage: %s version\n" % sys.argv[0])
+
+
+def bump_version(new_version):
+    """Set new base version to base version file and commit"""
+    v = utils.get_vcs_info()
+    mode = utils.get_build_mode()
+
+    # Check that new base version is valid
+    python_version(new_version, v, mode)
+
+    repo = utils.get_repository()
+    toplevel = repo.working_dir
+
+    old_version = get_base_version(v)
+    sys.stdout.write("Current base version is '%s'\n" % old_version)
+
+    version_file = toplevel + "/version"
+    sys.stdout.write("Updating version file %s from version '%s' to '%s'\n"
+                     % (version_file, old_version, new_version))
+
+    f = open(version_file, 'rw+')
+    lines = f.readlines()
+    for i in range(0, len(lines)):
+        if not lines[i].startswith("#"):
+            lines[i] = lines[i].replace(old_version, new_version)
+    f.seek(0)
+    f.truncate(0)
+    f.writelines(lines)
+    f.close()
+
+    repo.git.add(version_file)
+    repo.git.commit(m="Bump version to %s" % new_version)
+    sys.stdout.write("Update version file and commited\n")
 
 
 def main():
-    v = vcs_info()
-    b = base_version(v)
-    mode = build_mode()
+    v = utils.get_vcs_info()
+    b = get_base_version(v)
+    mode = utils.get_build_mode()
 
     try:
         arg = sys.argv[1]

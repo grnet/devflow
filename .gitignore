@@ -20,6 +20,8 @@ settings.d/*-local.conf
 *.egg-info
 dist
 _build
+.coverage
+cover/
 
 # version module created automatically from setup.py
 /devflow/version.py

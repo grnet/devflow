@@ -1,4 +1,4 @@
-# Copyright 2012 GRNET S.A. All rights reserved.
+# Copyright 2012, 2013 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -31,14 +31,17 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
-import git
+"""Helper script for automatic build of debian packages."""
+
 import os
 import sys
 from optparse import OptionParser
-from collections import namedtuple
-from sh import mktemp, cd, rm, git_dch, python
+from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
+from configobj import ConfigObj
 
 from devflow import versioning
+from devflow import utils
+from devflow import BRANCH_TYPES
 
 try:
     from colors import red, green
@@ -50,15 +53,6 @@ print_red = lambda x: sys.stdout.write(red(x) + "\n")
 print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
 AVAILABLE_MODES = ["release", "snapshot"]
-
-branch_type = namedtuple("branch_type", ["default_debian_branch"])
-BRANCH_TYPES = {
-    "feature": branch_type("debian-develop"),
-    "develop": branch_type("debian-develop"),
-    "release": branch_type("debian-develop"),
-    "master": branch_type("debian"),
-    "hotfix": branch_type("debian")}
-
 
 DESCRIPTION = """Tool for automatical build of debian packages.
 
@@ -87,7 +81,7 @@ def print_help(prog):
 
 
 def main():
-    from devflow.version import __version__
+    from devflow.version import __version__  # pylint: disable=E0611,F0401
     parser = OptionParser(usage="usage: %prog [options] mode",
                           version="devflow %s" % __version__,
                           add_help_option=False)
@@ -116,6 +110,20 @@ def main():
     parser.add_option("-c", "--config-file",
                       dest="config_file",
                       help="Override default configuration file")
+    parser.add_option("--no-sign",
+                      dest="sign",
+                      action="store_false",
+                      default=True,
+                      help="Do not sign the packages")
+    parser.add_option("--key-id",
+                      dest="keyid",
+                      help="Use this keyid for gpg signing")
+    parser.add_option("--dist",
+                      dest="dist",
+                      default="unstable",
+                      help="If running in snapshot mode, automatically set"
+                           " the changelog distribution to this value"
+                           " (default=unstable).")
 
     (options, args) = parser.parse_args()
 
@@ -128,19 +136,15 @@ def main():
     try:
         mode = args[0]
     except IndexError:
-        raise ValueError("Mode argument is mandatory. Usage: %s"
-                         % parser.usage)
+        mode = utils.get_build_mode()
     if mode not in AVAILABLE_MODES:
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
 
-    os.environ["GITFLOW_BUILD_MODE"] = mode
+    os.environ["DEVFLOW_BUILD_MODE"] = mode
 
     # Load the repository
-    try:
-        original_repo = git.Repo(".")
-    except git.git.InvalidGitRepositoryError:
-        raise RuntimeError(red("Current directory is not git repository."))
+    original_repo = utils.get_repository()
 
     # Check that repository is clean
     toplevel = original_repo.working_dir
@@ -148,51 +152,36 @@ def main():
         raise RuntimeError(red("Repository %s is dirty." % toplevel))
 
     # Get packages from configuration file
-    config_file = options.config_file or os.path.join(toplevel, "autopkg.conf")
-    packages = get_packages_to_build(config_file)
-    if packages:
-        print_green("Will build the following packages:\n" + \
-                    "\n".join(packages))
-    else:
-        raise RuntimeError("Configuration file is empty."
-                           " No packages to build.")
+    config_file = options.config_file or os.path.join(toplevel, "devflow.conf")
+    config = ConfigObj(config_file)
+    packages = config['packages'].keys()
+    print_green("Will build the following packages:\n" + "\n".join(packages))
 
-    # Clone the repo
-    repo_dir = options.repo_dir
-    if not repo_dir:
-        repo_dir = mktemp("-d", "/tmp/devflow-build-repo-XXX").stdout.strip()
-        print_green("Created temporary directory '%s' for the cloned repo."
-                    % repo_dir)
+    # Get current branch name and type and check if it is a valid one
+    branch = original_repo.head.reference.name
+    branch_type_str = versioning.get_branch_type(branch)
 
-    repo = original_repo.clone(repo_dir)
-    print_green("Cloned current repository to '%s'." % repo_dir)
-
-    reflog_hexsha = repo.head.log()[-1].newhexsha
-    print "Latest Reflog entry is %s" % reflog_hexsha
-
-    branch = repo.head.reference.name
-    allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-    if branch.split('-')[0] not in allowed_branches:
+    if branch_type_str not in BRANCH_TYPES.keys():
+        allowed_branches = ", ".join(BRANCH_TYPES.keys())
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
 
-    brnorm = versioning.normalize_branch_name(branch)
-    btypestr = versioning.get_branch_type(brnorm)
-
-    # Find the debian branch, and create it if does not exist
-    debian_branch = "debian-" + brnorm
+    # Get the debian branch
+    debian_branch = utils.get_debian_branch(branch)
     origin_debian = "origin/" + debian_branch
-    if not origin_debian in repo.references:
-        # Get default debian branch
-        try:
-            default_debian = BRANCH_TYPES[btypestr].default_debian_branch
-            origin_debian = "origin/" + default_debian
-        except KeyError:
-            allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-            raise ValueError("Malformed branch name '%s', cannot classify as"
-                             " one of %s" % (btypestr, allowed_branches))
 
-    repo.git.branch("--track", debian_branch, origin_debian)
+    # Clone the repo
+    repo_dir = options.repo_dir or create_temp_directory("df-repo")
+    repo_dir = os.path.abspath(repo_dir)
+    repo = original_repo.clone(repo_dir, branch=branch)
+    print_green("Cloned repository to '%s'." % repo_dir)
+
+    build_dir = options.build_dir or create_temp_directory("df-build")
+    build_dir = os.path.abspath(build_dir)
+    print_green("Build directory: '%s'" % build_dir)
+
+    # Create the debian branch
+    repo.git.branch(debian_branch, origin_debian)
     print_green("Created branch '%s' to track '%s'" % (debian_branch,
                 origin_debian))
 
@@ -202,103 +191,113 @@ def main():
 
     # Merge with starting branch
     repo.git.merge(branch)
-    print_green("Merged branch '%s' into '%s'" % (brnorm, debian_branch))
+    print_green("Merged branch '%s' into '%s'" % (branch, debian_branch))
 
     # Compute python and debian version
     cd(repo_dir)
     python_version = versioning.get_python_version()
     debian_version = versioning.\
-            debian_version_from_python_version(python_version)
+        debian_version_from_python_version(python_version)
     print_green("The new debian version will be: '%s'" % debian_version)
+
+    # Update the version files
+    versioning.update_version()
+
+    # Tag branch with python version
+    branch_tag = python_version
+    repo.git.tag(branch_tag, branch)
+    upstream_tag = "upstream/" + branch_tag
+    repo.git.tag(upstream_tag, branch)
 
     # Update changelog
     dch = git_dch("--debian-branch=%s" % debian_branch,
-            "--git-author",
-            "--ignore-regex=\".*\"",
-            "--multimaint-merge",
-            "--since=HEAD",
-            "--new-version=%s" % debian_version)
+                  "--git-author",
+                  "--ignore-regex=\".*\"",
+                  "--multimaint-merge",
+                  "--since=HEAD",
+                  "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
-    os.system("vim debian/changelog")
-    repo.git.add("debian/changelog")
-
     if mode == "release":
-        # Commit changelog and update tag branches
-        os.system("vim debian/changelog")
-        repo.git.add("debian/changelog")
-        repo.git.commit("-s", "-a", "-m", "Bump new upstream version")
-        python_tag = python_version
-        debian_tag = "debian/" + python_tag
-        repo.git.tag(debian_tag)
-        repo.git.tag(python_tag, brnorm)
+        call("vim debian/changelog")
+    else:
+        f = open("debian/changelog", 'r+')
+        lines = f.readlines()
+        lines[0] = lines[0].replace("UNRELEASED", options.dist)
+        lines[2] = lines[2].replace("UNRELEASED", "Snapshot build")
+        f.seek(0)
+        f.writelines(lines)
+        f.close()
 
-    # Update the python version files
-    # TODO: remove this
-    for package in packages:
-        # python setup.py should run in its directory
-        cd(package)
-        package_dir = repo_dir + "/" + package
-        res = python(package_dir + "/setup.py", "sdist", _out=sys.stdout)
-        print res.stdout
-        if package != ".":
-            cd("../")
+    # Add changelog to INDEX
+    repo.git.add("debian/changelog")
+    # Commit Changes
+    repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
+    # Tag debian branch
+    debian_branch_tag = "debian/" + branch_tag
+    repo.git.tag(debian_branch_tag)
 
     # Add version.py files to repo
-    os.system("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
+    call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
 
-    # Create debian branches
-    build_dir = options.build_dir
-    if not options.build_dir:
-        build_dir = mktemp("-d", "/tmp/devflow-build-XXX").stdout.strip()
-        print_green("Created directory '%s' to store the .deb files." %
-                     build_dir)
-
+    # Create debian packages
     cd(repo_dir)
-    os.system("git-buildpackage --git-export-dir=%s --git-upstream-branch=%s"
-              " --git-debian-branch=%s --git-export=INDEX --git-ignore-new -sa"
-              % (build_dir, brnorm, debian_branch))
+    version_files = []
+    for _, pkg_info in config['packages'].items():
+        version_files.append(pkg_info['version_file'])
+    ignore_regexp = "|".join(["^(%s)$" % vf for vf in version_files])
+    build_cmd = "git-buildpackage --git-export-dir=%s"\
+                " --git-upstream-branch=%s --git-debian-branch=%s"\
+                " --git-export=INDEX --git-ignore-new -sa"\
+                " --source-option='\"--extend-diff-ignore=%s\"'"\
+                " --git-upstream-tag=%s"\
+                % (build_dir, branch, debian_branch, ignore_regexp,
+                   upstream_tag)
+    if not options.sign:
+        build_cmd += " -uc -us"
+    elif options.keyid:
+        build_cmd += " -k\"'%s'\"" % options.keyid
+    call(build_cmd)
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
         print_green("Removing cloned repo '%s'." % repo_dir)
         rm("-r", repo_dir)
-    else:
-        print_green("Repository dir '%s'" % repo_dir)
 
-    print_green("Completed. Version '%s', build area: '%s'"
-                % (debian_version, build_dir))
+    # Print final info
+    info = (("Version", debian_version),
+            ("Upstream branch", branch),
+            ("Upstream tag", branch_tag),
+            ("Debian branch", debian_branch),
+            ("Debian tag", debian_branch_tag),
+            ("Repository directory", repo_dir),
+            ("Packages directory", build_dir))
+    print_green("\n".join(["%s: %s" % (name, val) for name, val in info]))
 
     # Print help message
     if mode == "release":
-        TAG_MSG = "Tagged branch %s with tag %s\n"
-        print_green(TAG_MSG % (brnorm, python_tag))
-        print_green(TAG_MSG % (debian_branch, debian_tag))
+        origin = original_repo.remote().url
+        repo.create_remote("original_origin", origin)
+        print_green("Created remote 'original_origin' for the repository '%s'"
+                    % origin)
 
-        UPDATE_MSG = "To update repository %s, go to %s, and run the"\
-                     " following commands:\n" + "git_push origin %s\n" * 3
-
-        origin_url = repo.remotes['origin'].url
-        remote_url = original_repo.remotes['origin'].url
-
-        print_green(UPDATE_MSG % (origin_url, repo_dir, debian_branch,
-                    debian_tag, python_tag))
-        print_green(UPDATE_MSG % (remote_url, original_repo.working_dir,
-                    debian_branch, debian_tag, python_tag))
+        print_green("To update repositories '%s' and '%s' go to '%s' and run:"
+                    % (toplevel, origin, repo_dir))
+        for remote in ['origin', 'original_origin']:
+            print
+            for obj in [debian_branch, branch_tag, debian_branch_tag]:
+                print_green("git push %s %s" % (remote, obj))
 
 
-def get_packages_to_build(config_file):
-    config_file = os.path.abspath(config_file)
-    try:
-        f = open(config_file)
-    except IOError:
-        raise RuntimeError("Configuration file %s does not exist!"
-                           % config_file)
+def create_temp_directory(suffix):
+    create_dir_cmd = mktemp("-d", "/tmp/" + suffix + "-XXXXX")
+    return create_dir_cmd.stdout.strip()
 
-    lines = [l.strip() for l in f.readlines()]
-    l = [l for l in lines if not l.startswith("#")]
-    f.close()
-    return l
+
+def call(cmd):
+    rc = os.system(cmd)
+    if rc:
+        raise RuntimeError("Command '%s' failed!" % cmd)
 
 
 if __name__ == "__main__":
