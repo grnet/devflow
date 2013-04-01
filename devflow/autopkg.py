@@ -152,7 +152,6 @@ def main():
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
 
-    os.environ["DEVFLOW_BUILD_MODE"] = mode
 
     # Load the repository
     original_repo = utils.get_repository()
@@ -175,6 +174,12 @@ def main():
         allowed_branches = ", ".join(BRANCH_TYPES.keys())
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
+
+    # Fix needed environment variables
+    os.environ["DEVFLOW_BUILD_MODE"] = mode
+    git_config = original_repo.config_reader()
+    os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
+    os.environ["DEBEMAIL"] = git_config.get_value("user", "mail")
 
     # Get the debian branch
     debian_branch = utils.get_debian_branch(branch)
