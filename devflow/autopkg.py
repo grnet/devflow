@@ -35,6 +35,8 @@
 
 import os
 import sys
+
+from git import GitCommandError
 from optparse import OptionParser
 from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
 from configobj import ConfigObj
@@ -213,7 +215,11 @@ def main():
 
     # Tag branch with python version
     branch_tag = python_version
-    repo.git.tag(branch_tag, branch)
+    try:
+        repo.git.tag(branch_tag, branch)
+    except GitCommandError:
+        # Tag may already exist, if only the debian branch has changed
+        pass
     upstream_tag = "upstream/" + branch_tag
     repo.git.tag(upstream_tag, branch)
 
@@ -242,7 +248,7 @@ def main():
     # Commit Changes
     repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
     # Tag debian branch
-    debian_branch_tag = "debian/" + branch_tag
+    debian_branch_tag = "debian/" + debian_version
     repo.git.tag(debian_branch_tag)
 
     # Add version.py files to repo
