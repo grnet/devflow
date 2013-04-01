@@ -94,3 +94,27 @@ def get_commit_id(commit, current_branch):
             return short_id(commit)
     else:
         raise RuntimeError("Commit %s has more than 2 parents!" % commit)
+
+
+def get_debian_branch(branch):
+    """Find the corresponding debian- branch"""
+    if branch == "master":
+        return "debian"
+    # Check if debian-branch exists (local or origin)
+    deb_branch = "debian-" + branch
+    if _get_branch(deb_branch) or _get_branch("origin/" + deb_branch):
+        return deb_branch
+    return "debian"
+
+
+def _get_branch(branch):
+    repo = get_repository()
+    if branch in repo.branches:
+        return branch
+    origin_branch = "origin/" + branch
+    if origin_branch in repo.refs:
+        print "Creating branch '%s' to track '%s'" (branch, origin_branch)
+        repo.git.branch(branch, origin_branch)
+        return branch
+    else:
+        return None

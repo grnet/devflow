@@ -176,16 +176,9 @@ def main():
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
 
-    # Check that original repo has the correct debian branch
-    debian_branch = "debian-" + branch
+    # Get the debian branch
+    debian_branch = utils.get_debian_branch(branch)
     origin_debian = "origin/" + debian_branch
-    if not debian_branch in original_repo.branches:
-        # Get default debian branch
-        default_debian = BRANCH_TYPES[branch_type_str].default_debian_branch
-        origin_debian = "origin/" + default_debian
-        if not default_debian in original_repo.branches:
-            original_repo.git.branch(default_debian,
-                                     origin_debian)
 
     # Clone the repo
     repo_dir = options.repo_dir or create_temp_directory("df-repo")
