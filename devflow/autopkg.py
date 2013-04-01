@@ -161,8 +161,7 @@ def main():
         raise RuntimeError(red("Repository %s is dirty." % toplevel))
 
     # Get packages from configuration file
-    config_file = options.config_file or os.path.join(toplevel, "devflow.conf")
-    config = ConfigObj(config_file)
+    config = utils.get_config(options.config_file)
     packages = config['packages'].keys()
     print_green("Will build the following packages:\n" + "\n".join(packages))
 

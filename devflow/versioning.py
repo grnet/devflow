@@ -47,7 +47,6 @@ import sys
 import pprint
 
 from distutils import log  # pylint: disable=E0611
-from configobj import ConfigObj
 
 from devflow import BRANCH_TYPES, BASE_VERSION_FILE
 from devflow import utils
@@ -370,9 +369,9 @@ def update_version():
     """
 
     v = utils.get_vcs_info()
-    toplevel = v.toplevel + "/"
+    toplevel = v.toplevel
 
-    config = ConfigObj(toplevel + "devflow.conf")
+    config = utils.get_config()
     if not v:
         # Return early if not in development environment
         raise RuntimeError("Can not compute version outside of a git"
@@ -392,8 +391,9 @@ __version_user_info__ = "%(user_info)s"
     for _pkg_name, pkg_info in config['packages'].items():
         version_filename = pkg_info['version_file']
         if version_filename:
+            path = os.path.join(toplevel, version_filename)
             log.info("Updating version file '%s'" % version_filename)
-            version_file = file(toplevel + version_filename, "w+")
+            version_file = file(path, "w+")
             version_file.write(content)
             version_file.close()
 
@@ -421,7 +421,7 @@ def bump_version(new_version):
     old_version = get_base_version(v)
     sys.stdout.write("Current base version is '%s'\n" % old_version)
 
-    version_file = toplevel + "/version"
+    version_file = os.path.join(toplevel, "version")
     sys.stdout.write("Updating version file %s from version '%s' to '%s'\n"
                      % (version_file, old_version, new_version))
 

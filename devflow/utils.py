@@ -34,18 +34,31 @@
 import os
 import git
 from collections import namedtuple
+from configobj import ConfigObj
+
 from devflow import BRANCH_TYPES
 
 
-def get_repository():
+def get_repository(path=None):
     """Load the repository from the current working dir."""
-
+    if path is None:
+        path = os.getcwd()
     try:
-        return git.Repo(".")
+        return git.Repo(path)
     except git.InvalidGitRepositoryError:
         msg = "Cound not retrivie git information. Directory '%s'"\
-              " is not a git repository!" % os.getcwd()
+              " is not a git repository!" % path
         raise RuntimeError(msg)
+
+
+def get_config(path=None):
+    """Load configuration file."""
+    if path is None:
+        toplevel = get_vcs_info().toplevel
+        path = os.path.join(toplevel, "devflow.conf")
+
+    config = ConfigObj(path)
+    return config
 
 
 def get_vcs_info():
