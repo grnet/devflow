@@ -48,7 +48,7 @@ import pprint
 
 from distutils import log  # pylint: disable=E0611
 
-from devflow import BRANCH_TYPES, BASE_VERSION_FILE
+from devflow import BRANCH_TYPES, BASE_VERSION_FILE, VERSION_RE
 from devflow import utils
 
 

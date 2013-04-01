@@ -39,7 +39,6 @@ import sys
 from git import GitCommandError
 from optparse import OptionParser
 from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
-from configobj import ConfigObj
 
 from devflow import versioning
 from devflow import utils

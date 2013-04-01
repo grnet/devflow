@@ -127,7 +127,7 @@ def _get_branch(branch):
         return branch
     origin_branch = "origin/" + branch
     if origin_branch in repo.refs:
-        print "Creating branch '%s' to track '%s'" (branch, origin_branch)
+        print "Creating branch '%s' to track '%s'" % (branch, origin_branch)
         repo.git.branch(branch, origin_branch)
         return branch
     else:
