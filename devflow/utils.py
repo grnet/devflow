@@ -34,6 +34,7 @@
 import os
 import git
 from collections import namedtuple
+from devflow import BRANCH_TYPES
 
 
 def get_repository():
@@ -118,3 +119,19 @@ def _get_branch(branch):
         return branch
     else:
         return None
+
+
+def get_build_mode():
+    """Determine the build mode"""
+    # Get it from environment if exists
+    mode = os.environ.get("DEVFLOW_BUILD_MODE", None)
+    if mode is None:
+        branch = get_vcs_info().branch
+        try:
+            br_type = BRANCH_TYPES[branch]
+        except KeyError:
+            allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
+            raise ValueError("Malformed branch name '%s', cannot classify as"
+                             " one of %s" % (branch, allowed_branches))
+        mode = "snapshot" if br_type.builds_snapshot else "release"
+    return mode

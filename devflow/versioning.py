@@ -47,30 +47,10 @@ import sys
 import pprint
 
 from distutils import log  # pylint: disable=E0611
-from collections import namedtuple
 from configobj import ConfigObj
 
+from devflow import BRANCH_TYPES, BASE_VERSION_FILE
 from devflow import utils
-
-# Branch types:
-# builds_snapshot: Whether the branch can produce snapshot builds
-# builds_release: Whether the branch can produce release builds
-# versioned: Whether the name of the branch defines a specific version
-# allowed_version_re: A regular expression describing allowed values for
-#                     base_version in this branch
-branch_type = namedtuple("branch_type", ["builds_snapshot", "builds_release",
-                                         "versioned", "allowed_version_re"])
-VERSION_RE = "[0-9]+\.[0-9]+(\.[0-9]+)*"
-BRANCH_TYPES = {
-    "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE),
-    "develop": branch_type(True, False, False, "^%snext$" % VERSION_RE),
-    "release": branch_type(True, True, True,
-                           "^(?P<bverstr>%s)rc[1-9][0-9]*$" % VERSION_RE),
-    "master": branch_type(False, True, False,
-                          "^%s$" % VERSION_RE),
-    "hotfix": branch_type(True, True, True,
-                          "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE)}
-BASE_VERSION_FILE = "version"
 
 
 def get_base_version(vcs_info):
@@ -83,22 +63,6 @@ def get_base_version(vcs_info):
         raise ValueError("File '%s' should contain a single non-comment line.")
     f.close()
     return lines[0]
-
-
-def build_mode():
-    """Determine the build mode"""
-    # Get it from environment if exists
-    mode = os.environ.get("DEVFLOW_BUILD_MODE", None)
-    if mode is None:
-        branch = utils.get_vcs_info().branch
-        try:
-            br_type = BRANCH_TYPES[branch]
-        except KeyError:
-            allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-            raise ValueError("Malformed branch name '%s', cannot classify as"
-                             " one of %s" % (branch, allowed_branches))
-        mode = "snapshot" if br_type.builds_snapshot else "release"
-    return mode
 
 
 def normalize_branch_name(branch_name):
@@ -375,7 +339,7 @@ def get_revision(version):
 def get_python_version():
     v = utils.get_vcs_info()
     b = get_base_version(v)
-    mode = build_mode()
+    mode = utils.get_build_mode()
     return python_version(b, v, mode)
 
 
@@ -387,7 +351,7 @@ def debian_version(base_version, vcs_info, mode):
 def get_debian_version():
     v = utils.get_vcs_info()
     b = get_base_version(v)
-    mode = build_mode()
+    mode = utils.get_build_mode()
     return debian_version(b, v, mode)
 
 
@@ -414,7 +378,7 @@ def update_version():
         raise RuntimeError("Can not compute version outside of a git"
                            " repository.")
     b = get_base_version(v)
-    mode = build_mode()
+    mode = utils.get_build_mode()
     version = python_version(b, v, mode)
     vcs_info_dict = dict(v._asdict())  # pylint: disable=W0212
     content = """__version__ = "%(version)s"
@@ -446,7 +410,7 @@ def bump_version_main():
 def bump_version(new_version):
     """Set new base version to base version file and commit"""
     v = utils.get_vcs_info()
-    mode = build_mode()
+    mode = utils.get_build_mode()
 
     # Check that new base version is valid
     python_version(new_version, v, mode)
@@ -479,7 +443,7 @@ def bump_version(new_version):
 def main():
     v = utils.get_vcs_info()
     b = get_base_version(v)
-    mode = build_mode()
+    mode = utils.get_build_mode()
 
     try:
         arg = sys.argv[1]

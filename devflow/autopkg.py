@@ -36,12 +36,12 @@
 import os
 import sys
 from optparse import OptionParser
-from collections import namedtuple
 from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
 from configobj import ConfigObj
 
 from devflow import versioning
 from devflow import utils
+from devflow import BRANCH_TYPES
 
 try:
     from colors import red, green
@@ -53,15 +53,6 @@ print_red = lambda x: sys.stdout.write(red(x) + "\n")
 print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
 AVAILABLE_MODES = ["release", "snapshot"]
-
-branch_type = namedtuple("branch_type", ["default_debian_branch"])
-BRANCH_TYPES = {
-    "feature": branch_type("debian-develop"),
-    "develop": branch_type("debian-develop"),
-    "release": branch_type("debian-develop"),
-    "master": branch_type("debian"),
-    "hotfix": branch_type("debian")}
-
 
 DESCRIPTION = """Tool for automatical build of debian packages.
 
@@ -145,8 +136,7 @@ def main():
     try:
         mode = args[0]
     except IndexError:
-        raise ValueError("Mode argument is mandatory. Usage: %s"
-                         % parser.usage)
+        mode = utils.get_build_mode()
     if mode not in AVAILABLE_MODES:
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
