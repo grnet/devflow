@@ -1,3 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
-pep8 devflow ci
+r=$(dirname $(realpath $0))/..
+pep8 $r/devflow

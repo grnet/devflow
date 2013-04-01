@@ -1,3 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
-nosetests
+nosetests  --with-coverage --cover-package=devflow --nologcapture \
+           --cover-inclusive

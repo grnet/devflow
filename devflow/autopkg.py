@@ -33,15 +33,15 @@
 
 """Helper script for automatic build of debian packages."""
 
-import git
 import os
 import sys
 from optparse import OptionParser
-from collections import namedtuple
 from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
 from configobj import ConfigObj
 
 from devflow import versioning
+from devflow import utils
+from devflow import BRANCH_TYPES
 
 try:
     from colors import red, green
@@ -53,15 +53,6 @@ print_red = lambda x: sys.stdout.write(red(x) + "\n")
 print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
 AVAILABLE_MODES = ["release", "snapshot"]
-
-branch_type = namedtuple("branch_type", ["default_debian_branch"])
-BRANCH_TYPES = {
-    "feature": branch_type("debian-develop"),
-    "develop": branch_type("debian-develop"),
-    "release": branch_type("debian-develop"),
-    "master": branch_type("debian"),
-    "hotfix": branch_type("debian")}
-
 
 DESCRIPTION = """Tool for automatical build of debian packages.
 
@@ -90,7 +81,7 @@ def print_help(prog):
 
 
 def main():
-    from devflow.version import __version__
+    from devflow.version import __version__  # pylint: disable=E0611,F0401
     parser = OptionParser(usage="usage: %prog [options] mode",
                           version="devflow %s" % __version__,
                           add_help_option=False)
@@ -145,8 +136,7 @@ def main():
     try:
         mode = args[0]
     except IndexError:
-        raise ValueError("Mode argument is mandatory. Usage: %s"
-                         % parser.usage)
+        mode = utils.get_build_mode()
     if mode not in AVAILABLE_MODES:
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
@@ -154,10 +144,7 @@ def main():
     os.environ["DEVFLOW_BUILD_MODE"] = mode
 
     # Load the repository
-    try:
-        original_repo = git.Repo(".")
-    except git.InvalidGitRepositoryError:
-        raise RuntimeError(red("Current directory is not git repository."))
+    original_repo = utils.get_repository()
 
     # Check that repository is clean
     toplevel = original_repo.working_dir
@@ -179,21 +166,19 @@ def main():
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
 
-    # Check that original repo has the correct debian branch
-    debian_branch = "debian-" + branch
+    # Get the debian branch
+    debian_branch = utils.get_debian_branch(branch)
     origin_debian = "origin/" + debian_branch
-    if not debian_branch in original_repo.branches:
-        # Get default debian branch
-        default_debian = BRANCH_TYPES[branch_type_str].default_debian_branch
-        origin_debian = "origin/" + default_debian
-        if not default_debian in original_repo.branches:
-            original_repo.git.branch(default_debian,
-                                     origin_debian)
 
     # Clone the repo
     repo_dir = options.repo_dir or create_temp_directory("df-repo")
+    repo_dir = os.path.abspath(repo_dir)
     repo = original_repo.clone(repo_dir, branch=branch)
     print_green("Cloned repository to '%s'." % repo_dir)
+
+    build_dir = options.build_dir or create_temp_directory("df-build")
+    build_dir = os.path.abspath(build_dir)
+    print_green("Build directory: '%s'" % build_dir)
 
     # Create the debian branch
     repo.git.branch(debian_branch, origin_debian)
@@ -256,9 +241,6 @@ def main():
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
 
     # Create debian packages
-    build_dir = options.build_dir or create_temp_directory("df-build")
-    print_green("Build directory: '%s'" % build_dir)
-
     cd(repo_dir)
     version_files = []
     for _, pkg_info in config['packages'].items():

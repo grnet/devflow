@@ -1,3 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
-pylint devflow ci
+r=$(dirname $(realpath $0))/..
+pylint $r/devflow
