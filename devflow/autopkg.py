@@ -257,7 +257,7 @@ def main():
     # Commit Changes
     repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
     # Tag debian branch
-    debian_branch_tag = "debian/" + debian_version
+    debian_branch_tag = "debian/" + utils.version_to_tag(debian_version)
     if mode == "release":
         repo.git.tag(debian_branch_tag)
 

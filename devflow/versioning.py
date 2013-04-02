@@ -305,10 +305,11 @@ def debian_version_from_python_version(pyver):
 
 def get_revision(version):
     """Find revision for a debian version"""
+    version_tag = utils.version_to_tag(version)
     repo = utils.get_repository()
     minor = 1
     while True:
-        tag = "debian/" + version + "-" + str(minor)
+        tag = "debian/" + version_tag + "-" + str(minor)
         if tag in repo.tags:
             minor += 1
         else:

@@ -173,3 +173,7 @@ def get_branch_type(branch_name):
     else:
         btypestr = branch_name
     return btypestr
+
+
+def version_to_tag(version):
+    return version.replace("~", "")
