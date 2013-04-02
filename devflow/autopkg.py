@@ -177,8 +177,11 @@ def main():
     # Fix needed environment variables
     os.environ["DEVFLOW_BUILD_MODE"] = mode
     git_config = original_repo.config_reader()
-    os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
-    os.environ["DEBEMAIL"] = git_config.get_value("user", "mail")
+    try:
+        os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
+        os.environ["DEBEMAIL"] = git_config.get_value("user", "email")
+    except:
+        print "Could not load user/email from config"
 
     # Get the debian branch
     debian_branch = utils.get_debian_branch(branch)
