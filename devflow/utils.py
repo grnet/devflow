@@ -34,18 +34,31 @@
 import os
 import git
 from collections import namedtuple
+from configobj import ConfigObj
+
 from devflow import BRANCH_TYPES
 
 
-def get_repository():
+def get_repository(path=None):
     """Load the repository from the current working dir."""
-
+    if path is None:
+        path = os.getcwd()
     try:
-        return git.Repo(".")
+        return git.Repo(path)
     except git.InvalidGitRepositoryError:
         msg = "Cound not retrivie git information. Directory '%s'"\
-              " is not a git repository!" % os.getcwd()
+              " is not a git repository!" % path
         raise RuntimeError(msg)
+
+
+def get_config(path=None):
+    """Load configuration file."""
+    if path is None:
+        toplevel = get_vcs_info().toplevel
+        path = os.path.join(toplevel, "devflow.conf")
+
+    config = ConfigObj(path)
+    return config
 
 
 def get_vcs_info():
@@ -101,10 +114,21 @@ def get_debian_branch(branch):
     """Find the corresponding debian- branch"""
     if branch == "master":
         return "debian"
-    # Check if debian-branch exists (local or origin)
     deb_branch = "debian-" + branch
-    if _get_branch(deb_branch) or _get_branch("origin/" + deb_branch):
+    # Check if debian-branch exists (local or origin)
+    if _get_branch(deb_branch):
         return deb_branch
+    branch_type = BRANCH_TYPES[get_branch_type(branch)]
+    # If not try the default debian branch
+    default_branch = branch_type.debian_branch
+    if _get_branch(default_branch):
+        repo = get_repository()
+        repo.git.branch(deb_branch, default_branch)
+        print "Created branch '%s' from '%s'" % (deb_branch, default_branch)
+        return deb_branch
+    # If not try the debian branch
+    repo.git.branch(deb_branch, default_branch)
+    print "Created branch '%s' from 'debian'" % deb_branch
     return "debian"
 
 
@@ -114,7 +138,7 @@ def _get_branch(branch):
         return branch
     origin_branch = "origin/" + branch
     if origin_branch in repo.refs:
-        print "Creating branch '%s' to track '%s'" (branch, origin_branch)
+        print "Creating branch '%s' to track '%s'" % (branch, origin_branch)
         repo.git.branch(branch, origin_branch)
         return branch
     else:
@@ -126,12 +150,37 @@ def get_build_mode():
     # Get it from environment if exists
     mode = os.environ.get("DEVFLOW_BUILD_MODE", None)
     if mode is None:
-        branch = get_vcs_info().branch
+        branch = get_branch_type(get_vcs_info().branch)
         try:
-            br_type = BRANCH_TYPES[branch]
+            br_type = BRANCH_TYPES[get_branch_type(branch)]
         except KeyError:
             allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
             raise ValueError("Malformed branch name '%s', cannot classify as"
                              " one of %s" % (branch, allowed_branches))
         mode = "snapshot" if br_type.builds_snapshot else "release"
     return mode
+
+
+def normalize_branch_name(branch_name):
+    """Normalize branch name by removing debian- if exists"""
+    brnorm = branch_name
+    if brnorm == "debian":
+        brnorm = "debian-master"
+    # If it's a debian branch, ignore starting "debian-"
+    if brnorm.startswith("debian-"):
+        brnorm = brnorm.replace("debian-", "", 1)
+    return brnorm
+
+
+def get_branch_type(branch_name):
+    """Extract the type from a branch name"""
+    branch_name = normalize_branch_name(branch_name)
+    if "-" in branch_name:
+        btypestr = branch_name.split("-")[0]
+    else:
+        btypestr = branch_name
+    return btypestr
+
+
+def version_to_tag(version):
+    return version.replace("~", "")

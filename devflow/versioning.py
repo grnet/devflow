@@ -47,9 +47,8 @@ import sys
 import pprint
 
 from distutils import log  # pylint: disable=E0611
-from configobj import ConfigObj
 
-from devflow import BRANCH_TYPES, BASE_VERSION_FILE
+from devflow import BRANCH_TYPES, BASE_VERSION_FILE, VERSION_RE
 from devflow import utils
 
 
@@ -63,26 +62,6 @@ def get_base_version(vcs_info):
         raise ValueError("File '%s' should contain a single non-comment line.")
     f.close()
     return lines[0]
-
-
-def normalize_branch_name(branch_name):
-    """Normalize branch name by removing debian- if exists"""
-    brnorm = branch_name
-    if brnorm == "debian":
-        brnorm = "debian-master"
-    # If it's a debian branch, ignore starting "debian-"
-    if brnorm.startswith("debian-"):
-        brnorm = brnorm.replace("debian-", "", 1)
-    return brnorm
-
-
-def get_branch_type(branch_name):
-    """Extract the type from a branch name"""
-    if "-" in branch_name:
-        btypestr = branch_name.split("-")[0]
-    else:
-        btypestr = branch_name
-    return btypestr
 
 
 def python_version(base_version, vcs_info, mode):
@@ -205,8 +184,8 @@ def python_version(base_version, vcs_info, mode):
 
     branch = vcs_info.branch
 
-    brnorm = normalize_branch_name(branch)
-    btypestr = get_branch_type(brnorm)
+    brnorm = utils.normalize_branch_name(branch)
+    btypestr = utils.get_branch_type(branch)
 
     try:
         btype = BRANCH_TYPES[btypestr]
@@ -326,10 +305,11 @@ def debian_version_from_python_version(pyver):
 
 def get_revision(version):
     """Find revision for a debian version"""
+    version_tag = utils.version_to_tag(version)
     repo = utils.get_repository()
     minor = 1
     while True:
-        tag = "debian/" + version + "-" + str(minor)
+        tag = "debian/" + version_tag + "-" + str(minor)
         if tag in repo.tags:
             minor += 1
         else:
@@ -370,9 +350,9 @@ def update_version():
     """
 
     v = utils.get_vcs_info()
-    toplevel = v.toplevel + "/"
+    toplevel = v.toplevel
 
-    config = ConfigObj(toplevel + "devflow.conf")
+    config = utils.get_config()
     if not v:
         # Return early if not in development environment
         raise RuntimeError("Can not compute version outside of a git"
@@ -392,8 +372,9 @@ __version_user_info__ = "%(user_info)s"
     for _pkg_name, pkg_info in config['packages'].items():
         version_filename = pkg_info['version_file']
         if version_filename:
+            path = os.path.join(toplevel, version_filename)
             log.info("Updating version file '%s'" % version_filename)
-            version_file = file(toplevel + version_filename, "w+")
+            version_file = file(path, "w+")
             version_file.write(content)
             version_file.close()
 
@@ -421,7 +402,7 @@ def bump_version(new_version):
     old_version = get_base_version(v)
     sys.stdout.write("Current base version is '%s'\n" % old_version)
 
-    version_file = toplevel + "/version"
+    version_file = os.path.join(toplevel, "version")
     sys.stdout.write("Updating version file %s from version '%s' to '%s'\n"
                      % (version_file, old_version, new_version))
 
