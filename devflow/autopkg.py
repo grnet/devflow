@@ -256,7 +256,8 @@ def main():
     repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
     # Tag debian branch
     debian_branch_tag = "debian/" + debian_version
-    repo.git.tag(debian_branch_tag)
+    if mode == "release":
+        repo.git.tag(debian_branch_tag)
 
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
