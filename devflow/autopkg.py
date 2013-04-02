@@ -166,7 +166,7 @@ def main():
 
     # Get current branch name and type and check if it is a valid one
     branch = original_repo.head.reference.name
-    branch_type_str = versioning.get_branch_type(branch)
+    branch_type_str = utils.get_branch_type(branch)
 
     if branch_type_str not in BRANCH_TYPES.keys():
         allowed_branches = ", ".join(BRANCH_TYPES.keys())

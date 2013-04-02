@@ -139,12 +139,33 @@ def get_build_mode():
     # Get it from environment if exists
     mode = os.environ.get("DEVFLOW_BUILD_MODE", None)
     if mode is None:
-        branch = get_vcs_info().branch
+        branch = get_branch_type(get_vcs_info().branch)
         try:
-            br_type = BRANCH_TYPES[branch]
+            br_type = BRANCH_TYPES[get_branch_type(branch)]
         except KeyError:
             allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
             raise ValueError("Malformed branch name '%s', cannot classify as"
                              " one of %s" % (branch, allowed_branches))
         mode = "snapshot" if br_type.builds_snapshot else "release"
     return mode
+
+
+def normalize_branch_name(branch_name):
+    """Normalize branch name by removing debian- if exists"""
+    brnorm = branch_name
+    if brnorm == "debian":
+        brnorm = "debian-master"
+    # If it's a debian branch, ignore starting "debian-"
+    if brnorm.startswith("debian-"):
+        brnorm = brnorm.replace("debian-", "", 1)
+    return brnorm
+
+
+def get_branch_type(branch_name):
+    """Extract the type from a branch name"""
+    branch_name = normalize_branch_name(branch_name)
+    if "-" in branch_name:
+        btypestr = branch_name.split("-")[0]
+    else:
+        btypestr = branch_name
+    return btypestr

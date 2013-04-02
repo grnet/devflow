@@ -64,26 +64,6 @@ def get_base_version(vcs_info):
     return lines[0]
 
 
-def normalize_branch_name(branch_name):
-    """Normalize branch name by removing debian- if exists"""
-    brnorm = branch_name
-    if brnorm == "debian":
-        brnorm = "debian-master"
-    # If it's a debian branch, ignore starting "debian-"
-    if brnorm.startswith("debian-"):
-        brnorm = brnorm.replace("debian-", "", 1)
-    return brnorm
-
-
-def get_branch_type(branch_name):
-    """Extract the type from a branch name"""
-    if "-" in branch_name:
-        btypestr = branch_name.split("-")[0]
-    else:
-        btypestr = branch_name
-    return btypestr
-
-
 def python_version(base_version, vcs_info, mode):
     """Generate a Python distribution version following devtools conventions.
 
@@ -204,8 +184,8 @@ def python_version(base_version, vcs_info, mode):
 
     branch = vcs_info.branch
 
-    brnorm = normalize_branch_name(branch)
-    btypestr = get_branch_type(brnorm)
+    brnorm = utils.normalize_branch_name(branch)
+    btypestr = utils.get_branch_type(branch)
 
     try:
         btype = BRANCH_TYPES[btypestr]
