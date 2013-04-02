@@ -182,6 +182,9 @@ def main():
     except:
         print "Could not load user/email from config"
 
+    # Check that base version file and branch are correct
+    versioning.get_python_version()
+
     # Get the debian branch
     debian_branch = utils.get_debian_branch(branch)
     origin_debian = "origin/" + debian_branch
