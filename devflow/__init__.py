@@ -42,15 +42,20 @@ from collections import namedtuple
 # allowed_version_re: A regular expression describing allowed values for
 #                     base_version in this branch
 branch_type = namedtuple("branch_type", ["builds_snapshot", "builds_release",
-                                         "versioned", "allowed_version_re"])
+                                         "versioned", "allowed_version_re",
+                                         "debian_branch"])
 VERSION_RE = "[0-9]+\.[0-9]+(\.[0-9]+)*"
 BRANCH_TYPES = {
-    "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE),
-    "develop": branch_type(True, False, False, "^%snext$" % VERSION_RE),
+    "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE,
+                          "debian-develop"),
+    "develop": branch_type(True, False, False, "^%snext$" % VERSION_RE,
+                           "debian-develop"),
     "release": branch_type(True, True, True,
-                           "^(?P<bverstr>%s)rc[1-9][0-9]*$" % VERSION_RE),
+                           "^(?P<bverstr>%s)rc[1-9][0-9]*$" % VERSION_RE,
+                           "debian-develop"),
     "master": branch_type(False, True, False,
-                          "^%s$" % VERSION_RE),
+                          "^%s$" % VERSION_RE, "debian"),
     "hotfix": branch_type(True, True, True,
-                          "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE)}
+                          "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE,
+                          "debian")}
 BASE_VERSION_FILE = "version"

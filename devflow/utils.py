@@ -118,6 +118,10 @@ def get_debian_branch(branch):
     deb_branch = "debian-" + branch
     if _get_branch(deb_branch) or _get_branch("origin/" + deb_branch):
         return deb_branch
+    branch_type = BRANCH_TYPES[get_branch_type(branch)]
+    deb_branch = branch_type.debian_branch
+    if _get_branch(deb_branch) or _get_branch("origin/" + deb_branch):
+        return deb_branch
     return "debian"
 
 
