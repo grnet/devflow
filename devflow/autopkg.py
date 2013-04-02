@@ -151,7 +151,6 @@ def main():
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
 
-
     # Load the repository
     original_repo = utils.get_repository()
 
