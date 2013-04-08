@@ -184,3 +184,11 @@ def get_branch_type(branch_name):
 
 def version_to_tag(version):
     return version.replace("~", "")
+
+def undebianize(branch):
+    if branch == "debian":
+        return "master"
+    elif branch.startswith("debian-"):
+        return branch.replace("debian-", "")
+    else:
+        return branch
