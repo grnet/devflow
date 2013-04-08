@@ -50,6 +50,8 @@ if sys.stdout.isatty():
         use_colors = True
     except AttributeError:
         use_colors = False
+else:
+    use_colors = False
 
 
 if use_colors:
