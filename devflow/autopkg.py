@@ -35,9 +35,10 @@
 
 import os
 import sys
+
+from git import GitCommandError
 from optparse import OptionParser
 from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
-from configobj import ConfigObj
 
 from devflow import versioning
 from devflow import utils
@@ -150,8 +151,6 @@ def main():
         raise ValueError(red("Invalid argument! Mode must be one: %s"
                          % ", ".join(AVAILABLE_MODES)))
 
-    os.environ["DEVFLOW_BUILD_MODE"] = mode
-
     # Load the repository
     original_repo = utils.get_repository()
 
@@ -161,19 +160,30 @@ def main():
         raise RuntimeError(red("Repository %s is dirty." % toplevel))
 
     # Get packages from configuration file
-    config_file = options.config_file or os.path.join(toplevel, "devflow.conf")
-    config = ConfigObj(config_file)
+    config = utils.get_config(options.config_file)
     packages = config['packages'].keys()
     print_green("Will build the following packages:\n" + "\n".join(packages))
 
     # Get current branch name and type and check if it is a valid one
     branch = original_repo.head.reference.name
-    branch_type_str = versioning.get_branch_type(branch)
+    branch_type_str = utils.get_branch_type(branch)
 
     if branch_type_str not in BRANCH_TYPES.keys():
         allowed_branches = ", ".join(BRANCH_TYPES.keys())
         raise ValueError("Malformed branch name '%s', cannot classify as"
                          " one of %s" % (branch, allowed_branches))
+
+    # Fix needed environment variables
+    os.environ["DEVFLOW_BUILD_MODE"] = mode
+    git_config = original_repo.config_reader()
+    try:
+        os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
+        os.environ["DEBEMAIL"] = git_config.get_value("user", "email")
+    except:
+        print "Could not load user/email from config"
+
+    # Check that base version file and branch are correct
+    versioning.get_python_version()
 
     # Get the debian branch
     debian_branch = utils.get_debian_branch(branch)
@@ -214,7 +224,11 @@ def main():
 
     # Tag branch with python version
     branch_tag = python_version
-    repo.git.tag(branch_tag, branch)
+    try:
+        repo.git.tag(branch_tag, branch)
+    except GitCommandError:
+        # Tag may already exist, if only the debian branch has changed
+        pass
     upstream_tag = "upstream/" + branch_tag
     repo.git.tag(upstream_tag, branch)
 
@@ -243,8 +257,9 @@ def main():
     # Commit Changes
     repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
     # Tag debian branch
-    debian_branch_tag = "debian/" + branch_tag
-    repo.git.tag(debian_branch_tag)
+    debian_branch_tag = "debian/" + utils.version_to_tag(debian_version)
+    if mode == "release":
+        repo.git.tag(debian_branch_tag)
 
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
