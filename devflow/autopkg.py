@@ -132,10 +132,8 @@ def main():
                       help="Use this keyid for gpg signing")
     parser.add_option("--dist",
                       dest="dist",
-                      default="unstable",
-                      help="If running in snapshot mode, automatically set"
-                           " the changelog distribution to this value"
-                           " (default=unstable).")
+                      default=None,
+                      help="Force distribution in Debian changelog"),
     parser.add_option("-S", "--source-only",
                       dest="source_only",
                       default=False,
@@ -250,16 +248,23 @@ def main():
                   "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
+    if options.dist is not None:
+        distribution = options.dist
+    elif mode == "release":
+        distribution = utils.get_distribution_codename()
+    else:
+        distribution = "unstable"
+
+    f = open("debian/changelog", 'r+')
+    lines = f.readlines()
+    lines[0] = lines[0].replace("UNRELEASED", distribution)
+    lines[2] = lines[2].replace("UNRELEASED", "%s build" % mode)
+    f.seek(0)
+    f.writelines(lines)
+    f.close()
+
     if mode == "release":
         call("vim debian/changelog")
-    else:
-        f = open("debian/changelog", 'r+')
-        lines = f.readlines()
-        lines[0] = lines[0].replace("UNRELEASED", options.dist)
-        lines[2] = lines[2].replace("UNRELEASED", "Snapshot build")
-        f.seek(0)
-        f.writelines(lines)
-        f.close()
 
     # Add changelog to INDEX
     repo.git.add("debian/changelog")

@@ -33,6 +33,7 @@
 
 import os
 import git
+import sh
 from collections import namedtuple
 from configobj import ConfigObj
 
@@ -193,3 +194,10 @@ def undebianize(branch):
         return branch.replace("debian-", "")
     else:
         return branch
+
+
+def get_distribution_codename():
+    output = sh.lsb_release("-c")
+    _, codename = output.split("\t")
+    codename = codename.strip()
+    return codename
