@@ -114,14 +114,21 @@ def get_debian_branch(branch):
     """Find the corresponding debian- branch"""
     if branch == "master":
         return "debian"
-    # Check if debian-branch exists (local or origin)
     deb_branch = "debian-" + branch
-    if _get_branch(deb_branch) or _get_branch("origin/" + deb_branch):
+    # Check if debian-branch exists (local or origin)
+    if _get_branch(deb_branch):
         return deb_branch
     branch_type = BRANCH_TYPES[get_branch_type(branch)]
-    deb_branch = branch_type.debian_branch
-    if _get_branch(deb_branch) or _get_branch("origin/" + deb_branch):
+    # If not try the default debian branch
+    default_branch = branch_type.debian_branch
+    if _get_branch(default_branch):
+        repo = get_repository()
+        repo.git.branch(deb_branch, default_branch)
+        print "Created branch '%s' from '%s'" % (deb_branch, default_branch)
         return deb_branch
+    # If not try the debian branch
+    repo.git.branch(deb_branch, default_branch)
+    print "Created branch '%s' from 'debian'" % deb_branch
     return "debian"
 
 
@@ -177,3 +184,12 @@ def get_branch_type(branch_name):
 
 def version_to_tag(version):
     return version.replace("~", "")
+
+
+def undebianize(branch):
+    if branch == "debian":
+        return "master"
+    elif branch.startswith("debian-"):
+        return branch.replace("debian-", "")
+    else:
+        return branch

@@ -50,6 +50,8 @@ if sys.stdout.isatty():
         use_colors = True
     except AttributeError:
         use_colors = False
+else:
+    use_colors = False
 
 
 if use_colors:
@@ -166,6 +168,7 @@ def main():
 
     # Get current branch name and type and check if it is a valid one
     branch = original_repo.head.reference.name
+    branch = utils.undebianize(branch)
     branch_type_str = utils.get_branch_type(branch)
 
     if branch_type_str not in BRANCH_TYPES.keys():
