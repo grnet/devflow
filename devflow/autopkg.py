@@ -140,6 +140,11 @@ def main():
                       action="store_true",
                       help="Specifies a source-only build, no binary packages"
                            " need to be made.")
+    parser.add_option("--debian-branch",
+                      dest="debian_branch",
+                      default=None,
+                      help="Use this debian branch, instead of"
+                           "auto-discovering the debian branch to use")
 
     (options, args) = parser.parse_args()
 
@@ -193,7 +198,10 @@ def main():
     versioning.get_python_version()
 
     # Get the debian branch
-    debian_branch = utils.get_debian_branch(branch)
+    if options.debian_branch:
+        debian_branch = options.debian_branch
+    else:
+        debian_branch = utils.get_debian_branch(branch)
     origin_debian = "origin/" + debian_branch
 
     # Clone the repo
