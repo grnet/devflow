@@ -136,6 +136,12 @@ def main():
                       help="If running in snapshot mode, automatically set"
                            " the changelog distribution to this value"
                            " (default=unstable).")
+    parser.add_option("-S", "--source-only",
+                      dest="source_only",
+                      default=False,
+                      action="store_true",
+                      help="Specifies a source-only build, no binary packages"
+                           " need to be made.")
 
     (options, args) = parser.parse_args()
 
@@ -280,6 +286,8 @@ def main():
                 " --git-upstream-tag=%s"\
                 % (build_dir, branch, debian_branch, ignore_regexp,
                    upstream_tag)
+    if options.source_only:
+        build_cmd += " -S"
     if not options.sign:
         build_cmd += " -uc -us"
     elif options.keyid:
