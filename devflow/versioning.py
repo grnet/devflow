@@ -299,8 +299,9 @@ def debian_version_from_python_version(pyver):
 
     """
     version = pyver.replace("_", "~").replace("rc", "~rc")
-    minor = get_revision(version)
-    return version + "-" + str(minor)
+    minor = str(get_revision(version))
+    codename = utils.get_distribution_codename()
+    return version + "-" + minor + "~" + codename
 
 
 def get_revision(version):

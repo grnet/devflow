@@ -33,6 +33,7 @@
 
 import os
 import git
+import sh
 from collections import namedtuple
 from configobj import ConfigObj
 
@@ -112,17 +113,29 @@ def get_commit_id(commit, current_branch):
 
 def get_debian_branch(branch):
     """Find the corresponding debian- branch"""
+    distribution = get_distribution_codename()
+    repo = get_repository()
     if branch == "master":
-        return "debian"
-    deb_branch = "debian-" + branch
+        deb_branch = "debian-" + distribution
+    else:
+        deb_branch = "-".join(["debian", branch, distribution])
     # Check if debian-branch exists (local or origin)
     if _get_branch(deb_branch):
         return deb_branch
+    # Check without distribution
+    deb_branch = deb_branch.rstrip("-" + distribution)
+    if _get_branch(deb_branch):
+        return deb_branch
     branch_type = BRANCH_TYPES[get_branch_type(branch)]
-    # If not try the default debian branch
+    # If not try the default debian branch with distribution
+    default_branch = branch_type.debian_branch + "-" + distribution
+    if _get_branch(default_branch):
+        repo.git.branch(deb_branch, default_branch)
+        print "Created branch '%s' from '%s'" % (deb_branch, default_branch)
+        return deb_branch
+    # And without distribution
     default_branch = branch_type.debian_branch
     if _get_branch(default_branch):
-        repo = get_repository()
         repo.git.branch(deb_branch, default_branch)
         print "Created branch '%s' from '%s'" % (deb_branch, default_branch)
         return deb_branch
@@ -185,6 +198,7 @@ def get_branch_type(branch_name):
 def version_to_tag(version):
     return version.replace("~", "")
 
+
 def undebianize(branch):
     if branch == "debian":
         return "master"
@@ -192,3 +206,10 @@ def undebianize(branch):
         return branch.replace("debian-", "")
     else:
         return branch
+
+
+def get_distribution_codename():
+    output = sh.lsb_release("-c")
+    _, codename = output.split("\t")
+    codename = codename.strip()
+    return codename

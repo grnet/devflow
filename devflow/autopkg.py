@@ -50,6 +50,8 @@ if sys.stdout.isatty():
         use_colors = True
     except AttributeError:
         use_colors = False
+else:
+    use_colors = False
 
 
 if use_colors:
@@ -130,10 +132,19 @@ def main():
                       help="Use this keyid for gpg signing")
     parser.add_option("--dist",
                       dest="dist",
-                      default="unstable",
-                      help="If running in snapshot mode, automatically set"
-                           " the changelog distribution to this value"
-                           " (default=unstable).")
+                      default=None,
+                      help="Force distribution in Debian changelog"),
+    parser.add_option("-S", "--source-only",
+                      dest="source_only",
+                      default=False,
+                      action="store_true",
+                      help="Specifies a source-only build, no binary packages"
+                           " need to be made.")
+    parser.add_option("--debian-branch",
+                      dest="debian_branch",
+                      default=None,
+                      help="Use this debian branch, instead of"
+                           "auto-discovering the debian branch to use")
 
     (options, args) = parser.parse_args()
 
@@ -187,7 +198,10 @@ def main():
     versioning.get_python_version()
 
     # Get the debian branch
-    debian_branch = utils.get_debian_branch(branch)
+    if options.debian_branch:
+        debian_branch = options.debian_branch
+    else:
+        debian_branch = utils.get_debian_branch(branch)
     origin_debian = "origin/" + debian_branch
 
     # Clone the repo
@@ -242,16 +256,23 @@ def main():
                   "--new-version=%s" % debian_version)
     print_green("Successfully ran '%s'" % " ".join(dch.cmd))
 
+    if options.dist is not None:
+        distribution = options.dist
+    elif mode == "release":
+        distribution = utils.get_distribution_codename()
+    else:
+        distribution = "unstable"
+
+    f = open("debian/changelog", 'r+')
+    lines = f.readlines()
+    lines[0] = lines[0].replace("UNRELEASED", distribution)
+    lines[2] = lines[2].replace("UNRELEASED", "%s build" % mode)
+    f.seek(0)
+    f.writelines(lines)
+    f.close()
+
     if mode == "release":
         call("vim debian/changelog")
-    else:
-        f = open("debian/changelog", 'r+')
-        lines = f.readlines()
-        lines[0] = lines[0].replace("UNRELEASED", options.dist)
-        lines[2] = lines[2].replace("UNRELEASED", "Snapshot build")
-        f.seek(0)
-        f.writelines(lines)
-        f.close()
 
     # Add changelog to INDEX
     repo.git.add("debian/changelog")
@@ -278,6 +299,8 @@ def main():
                 " --git-upstream-tag=%s"\
                 % (build_dir, branch, debian_branch, ignore_regexp,
                    upstream_tag)
+    if options.source_only:
+        build_cmd += " -S"
     if not options.sign:
         build_cmd += " -uc -us"
     elif options.keyid:
