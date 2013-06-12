@@ -53,7 +53,7 @@ BRANCH_TYPES = {
     "release": branch_type(True, True, True,
                            "^(?P<bverstr>%s)rc[1-9][0-9]*$" % VERSION_RE,
                            "debian-develop"),
-    "master": branch_type(False, True, False,
+    "master": branch_type(True, True, False,
                           "^%s$" % VERSION_RE, "debian"),
     "hotfix": branch_type(True, True, True,
                           "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE,
