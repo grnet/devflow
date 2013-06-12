@@ -1,3 +1,9 @@
+devflow (0.11-1~squeeze) squeeze; urgency=low
+
+  * New upstream version
+
+ -- Christos Stavrakakis <cstavr@grnet.gr>  Wed, 12 Jun 2013 17:40:00 +0300
+
 devflow (0.10-1) stable; urgency=low
 
   * New upstream version
