@@ -34,6 +34,7 @@
 import os
 import git
 import sh
+import re
 from collections import namedtuple
 from configobj import ConfigObj
 
@@ -123,7 +124,7 @@ def get_debian_branch(branch):
     if _get_branch(deb_branch):
         return deb_branch
     # Check without distribution
-    deb_branch = deb_branch.rstrip("-" + distribution)
+    deb_branch = re.sub("-" + distribution + "$", "", deb_branch)
     if _get_branch(deb_branch):
         return deb_branch
     branch_type = BRANCH_TYPES[get_branch_type(branch)]
