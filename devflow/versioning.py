@@ -362,12 +362,17 @@ def update_version():
     mode = utils.get_build_mode()
     version = python_version(b, v, mode)
     vcs_info_dict = dict(v._asdict())  # pylint: disable=W0212
-    content = """__version__ = "%(version)s"
+    vcs_info = """{
+    'branch': '%s',
+    'revid': '%s',
+    'revno': %s}""" % (v.branch, v.revid, v.revno)
+    content =\
+"""__version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
 __version_user_info__ = "%(user_info)s"
 """ % dict(version=version, version_info=version.split("."),
-           vcs_info=pprint.PrettyPrinter().pformat(vcs_info_dict),
+           vcs_info=vcs_info,
            user_info=user_info())
 
     for _pkg_name, pkg_info in config['packages'].items():
