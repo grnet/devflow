@@ -182,7 +182,7 @@ def normalize_branch_name(branch_name):
     if brnorm == "debian":
         return "master"
     elif brnorm == codename:
-        return master
+        return "master"
     elif brnorm == "debian-%s" % codename:
         return "master"
     elif brnorm.startswith("debian-%s-" % codename):
@@ -207,8 +207,15 @@ def version_to_tag(version):
 
 
 def undebianize(branch):
+    codename = get_distribution_codename()
     if branch == "debian":
         return "master"
+    elif branch == codename:
+        return "master"
+    elif branch == "debian-%s" % codename:
+        return "master"
+    elif branch.startswith("debian-%s-" % codename):
+        return branch.replace("debian-%s-" % codename, "", 1)
     elif branch.startswith("debian-"):
         return branch.replace("debian-", "")
     else:
