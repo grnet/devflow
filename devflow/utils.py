@@ -178,11 +178,15 @@ def get_build_mode():
 def normalize_branch_name(branch_name):
     """Normalize branch name by removing debian- if exists"""
     brnorm = branch_name
+    codename = get_distribution_codename()
     if brnorm == "debian":
-        brnorm = "debian-master"
-    # If it's a debian branch, ignore starting "debian-"
-    if brnorm.startswith("debian-"):
-        brnorm = brnorm.replace("debian-", "", 1)
+        return "master"
+    elif brnorm == "debian-%s" % codename:
+        return "master"
+    elif brnorm.startswith("debian-%s-" % codename):
+        return brnorm.replace("debian-%s-" % codename, "", 1)
+    elif brnorm.startswith("debian-"):
+        return brnorm.replace("debian-", "", 1)
     return brnorm
 
 
