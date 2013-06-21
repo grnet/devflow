@@ -181,7 +181,7 @@ def normalize_branch_name(branch_name):
     codename = get_distribution_codename()
     if brnorm == "debian":
         return "master"
-    elif brnorm == "codename":
+    elif brnorm == codename:
         return master
     elif brnorm == "debian-%s" % codename:
         return "master"
