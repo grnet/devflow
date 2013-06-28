@@ -145,6 +145,11 @@ def main():
                       default=None,
                       help="Use this debian branch, instead of"
                            "auto-discovering the debian branch to use")
+    parser.add_option("--push-back",
+                      dest="push_back",
+                      default=False,
+                      action="store_true",
+                      help="Automatically push branches and tags to repo.")
 
     (options, args) = parser.parse_args()
 
@@ -342,6 +347,10 @@ def main():
         for remote in ['origin', 'original_origin']:
             objects = [debian_branch, branch_tag, debian_branch_tag]
             print_green("git push %s %s" % (remote, " ".join(objects)))
+        if options.push_back:
+            objects = [debian_branch, branch_tag, debian_branch_tag]
+            repo.git.push("origin", *objects)
+            print_green("Automatically updated origin repo.")
 
 
 def create_temp_directory(suffix):
