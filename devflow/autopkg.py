@@ -239,7 +239,6 @@ def main():
     # Update the version files
     versioning.update_version()
 
-
     if not options.sign:
         sign_tag_opt = None
     elif options.keyid:
