@@ -51,8 +51,8 @@ from devflow import BRANCH_TYPES, BASE_VERSION_FILE, VERSION_RE
 from devflow import utils
 
 
-DEFAULT_VERSION_FILE =\
-"""__version__ = "%(DEVFLOW_VERSION)s"
+DEFAULT_VERSION_FILE = """
+__version__ = "%(DEVFLOW_VERSION)s"
 __version_vcs_info__ = {
     'branch': '%(DEVFLOW_BRANCH)s',
     'revid': '%(DEVFLOW_REVISION_ID)s',
@@ -227,8 +227,8 @@ def python_version(base_version, vcs_info, mode):
                          "'release'" % mode)
     snap = (mode == "snapshot")
 
-    if ((snap and not btype.builds_snapshot) or
-        (not snap and not btype.builds_release)):  # nopep8
+    if (snap and not btype.builds_snapshot) or\
+       (not snap and not btype.builds_release):  # nopep8
         raise ValueError("Invalid mode '%s' in branch type '%s'" %
                          (mode, btypestr))
 
@@ -365,9 +365,9 @@ def update_version():
     b = get_base_version(v)
     mode = utils.get_build_mode()
     version = python_version(b, v, mode)
-    debian_version = debian_version_from_python_version(version)
+    debian_version_ = debian_version_from_python_version(version)
     env = {"DEVFLOW_VERSION": version,
-           "DEVFLOW_DEBIAN_VERSION": debian_version,
+           "DEVFLOW_DEBIAN_VERSION": debian_version_,
            "DEVFLOW_BRANCH": v.branch,
            "DEVFLOW_REVISION_ID": v.revid,
            "DEVFLOW_REVISION_NUMBER": v.revno,

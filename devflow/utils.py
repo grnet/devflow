@@ -230,7 +230,7 @@ def undebianize(branch):
 
 
 def get_distribution_codename():
-    output = sh.lsb_release("-c")
+    output = sh.lsb_release("-c")  # pylint: disable=E1101
     _, codename = output.split("\t")
     codename = codename.strip()
     return codename

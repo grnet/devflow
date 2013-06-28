@@ -133,7 +133,7 @@ def main():
     parser.add_option("--dist",
                       dest="dist",
                       default=None,
-                      help="Force distribution in Debian changelog"),
+                      help="Force distribution in Debian changelog")
     parser.add_option("-S", "--source-only",
                       dest="source_only",
                       default=False,
