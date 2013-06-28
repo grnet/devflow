@@ -51,6 +51,17 @@ from devflow import BRANCH_TYPES, BASE_VERSION_FILE, VERSION_RE
 from devflow import utils
 
 
+DEFAULT_VERSION_FILE =\
+"""__version__ = "%(DEVFLOW_VERSION)s"
+__version_vcs_info__ = {
+    'branch': '%(DEVFLOW_BRANCH)s',
+    'revid': '%(DEVFLOW_REVISION_ID)s',
+    'revno': %(DEVFLOW_REVISION_NUMBER)s}
+__version_user_email__ = "%(DEVFLOW_USER_EMAIL)s"
+__version_user_name__ = "%(DEVFLOW_USER_NAME)s"
+"""
+
+
 def get_base_version(vcs_info):
     """Determine the base version from a file in the repository"""
 
@@ -354,29 +365,37 @@ def update_version():
     b = get_base_version(v)
     mode = utils.get_build_mode()
     version = python_version(b, v, mode)
-    vcs_info = """{
-    'branch': '%s',
-    'revid': '%s',
-    'revno': %s}""" % (v.branch, v.revid, v.revno)
-    content =\
-"""__version__ = "%(version)s"
-__version_info__ = %(version_info)s
-__version_vcs_info__ = %(vcs_info)s
-__version_user_email__ = "%(user_email)s"
-__version_user_name__ = "%(user_name)s"
-""" % dict(version=version, version_info=version.split("."),
-           vcs_info=vcs_info,
-           user_email=v.email,
-           user_name=v.name)
+    debian_version = debian_version_from_python_version(version)
+    env = {"DEVFLOW_VERSION": version,
+           "DEVFLOW_DEBIAN_VERSION": debian_version,
+           "DEVFLOW_BRANCH": v.branch,
+           "DEVFLOW_REVISION_ID": v.revid,
+           "DEVFLOW_REVISION_NUMBER": v.revno,
+           "DEVFLOW_USER_EMAIL": v.email,
+           "DEVFLOW_USER_NAME": v.name}
 
     for _pkg_name, pkg_info in config['packages'].items():
-        version_filename = pkg_info['version_file']
-        if version_filename:
-            path = os.path.join(toplevel, version_filename)
+        version_filename = pkg_info.get('version_file')
+        if not version_filename:
+            continue
+        version_template = pkg_info.get('version_template')
+        if version_template:
+            vtemplate_file = os.path.join(toplevel, version_template)
+            try:
+                with file(vtemplate_file) as f:
+                    content = f.read(-1) % env
+            except IOError as e:
+                if e.errno == 2:
+                    raise RuntimeError("devflow.conf contains '%s' as a"
+                                       " version template file, but file does"
+                                       " not exists!" % vtemplate_file)
+                else:
+                    raise
+        else:
+            content = DEFAULT_VERSION_FILE % env
+        with file(os.path.join(toplevel, version_filename), 'w+') as f:
             log.info("Updating version file '%s'" % version_filename)
-            version_file = file(path, "w+")
-            version_file.write(content)
-            version_file.close()
+            f.write(content)
 
 
 def bump_version_main():

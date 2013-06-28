@@ -1,0 +1,7 @@
+__version__ = "%(DEVFLOW_VERSION)s"
+__version_vcs_info__ = {
+    'branch': '%(DEVFLOW_BRANCH)s',
+    'revid': '%(DEVFLOW_REVISION_ID)s',
+    'revno': %(DEVFLOW_REVISION_NUMBER)s}
+__version_user_email__ = "%(DEVFLOW_USER_EMAIL)s"
+__version_user_name__ = "%(DEVFLOW_USER_NAME)s"
