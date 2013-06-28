@@ -186,13 +186,10 @@ def main():
                          " one of %s" % (branch, allowed_branches))
 
     # Fix needed environment variables
+    v = utils.get_vcs_info()
     os.environ["DEVFLOW_BUILD_MODE"] = mode
-    git_config = original_repo.config_reader()
-    try:
-        os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
-        os.environ["DEBEMAIL"] = git_config.get_value("user", "email")
-    except:
-        print "Could not load user/email from config"
+    os.environ["DEBFULLNAME"] = v.name
+    os.environ["DEBEMAIL"] = v.email
 
     # Check that base version file and branch are correct
     versioning.get_python_version()
@@ -237,10 +234,21 @@ def main():
     # Update the version files
     versioning.update_version()
 
+
+    if not options.sign:
+        sign_tag_opt = None
+    elif options.keyid:
+        sign_tag_opt = "-u=%s" % options.keyid
+    elif mode == "release":
+        sign_tag_opt = "-s"
+    else:
+        sign_tag_opt = None
+
     # Tag branch with python version
     branch_tag = python_version
+    tag_message = "%s version %s" % (mode.capitalize(), python_version)
     try:
-        repo.git.tag(branch_tag, branch)
+        repo.git.tag(branch_tag, branch, sign_tag_opt, "-m=%s" % tag_message)
     except GitCommandError:
         # Tag may already exist, if only the debian branch has changed
         pass
@@ -280,8 +288,9 @@ def main():
     repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
     # Tag debian branch
     debian_branch_tag = "debian/" + utils.version_to_tag(debian_version)
+    tag_message = "%s version %s" % (mode.capitalize(), debian_version)
     if mode == "release":
-        repo.git.tag(debian_branch_tag)
+        repo.git.tag(debian_branch_tag, sign_tag_opt, "-m=%s" % tag_message)
 
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
