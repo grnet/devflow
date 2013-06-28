@@ -81,8 +81,12 @@ def get_vcs_info():
     revno = len(list(repo.iter_commits()))
     toplevel = repo.working_dir
     config = repo.config_reader()
-    name = config.get_value("user", "name")
-    email = config.get_value("user", "email")
+    try:
+        name = config.get_value("user", "name")
+        email = config.get_value("user", "email")
+    except Exception as e:
+        raise ValueError("Can not read name/email from .gitconfig"
+                         " file.: %s" % e)
 
     info = namedtuple("vcs_info", ["branch", "revid", "revno",
                                    "toplevel", "name", "email"])
