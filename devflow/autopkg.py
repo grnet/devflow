@@ -305,7 +305,8 @@ def main():
     version_files = []
     for _, pkg_info in config['packages'].items():
         version_files.append(pkg_info['version_file'])
-    ignore_regexp = "|".join(["^(%s)$" % vf for vf in version_files])
+    # Export version info to debuilg environment
+    os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     build_cmd = "git-buildpackage --git-export-dir=%s"\
                 " --git-upstream-branch=%s --git-debian-branch=%s"\
                 " --git-export=INDEX --git-ignore-new -sa"\
