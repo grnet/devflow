@@ -80,12 +80,15 @@ def get_vcs_info():
     revid = get_commit_id(branch.commit, branch)
     revno = len(list(repo.iter_commits()))
     toplevel = repo.working_dir
+    config = repo.config_reader()
+    name = config.get_value("user", "name")
+    email = config.get_value("user", "email")
 
     info = namedtuple("vcs_info", ["branch", "revid", "revno",
-                                   "toplevel"])
+                                   "toplevel", "name", "email"])
 
     return info(branch=branch.name, revid=revid, revno=revno,
-                toplevel=toplevel)
+                toplevel=toplevel, name=name, email=email)
 
 
 def get_commit_id(commit, current_branch):

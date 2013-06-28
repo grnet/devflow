@@ -44,7 +44,6 @@ of the repository code.
 import os
 import re
 import sys
-import pprint
 
 from distutils import log  # pylint: disable=E0611
 
@@ -336,12 +335,6 @@ def get_debian_version():
     return debian_version(b, v, mode)
 
 
-def user_info():
-    import getpass
-    import socket
-    return "%s@%s" % (getpass.getuser(), socket.getfqdn())
-
-
 def update_version():
     """Generate or replace version files
 
@@ -361,7 +354,6 @@ def update_version():
     b = get_base_version(v)
     mode = utils.get_build_mode()
     version = python_version(b, v, mode)
-    vcs_info_dict = dict(v._asdict())  # pylint: disable=W0212
     vcs_info = """{
     'branch': '%s',
     'revid': '%s',
@@ -370,10 +362,12 @@ def update_version():
 """__version__ = "%(version)s"
 __version_info__ = %(version_info)s
 __version_vcs_info__ = %(vcs_info)s
-__version_user_info__ = "%(user_info)s"
+__version_user_email__ = "%(user_email)s"
+__version_user_name__ = "%(user_name)s"
 """ % dict(version=version, version_info=version.split("."),
            vcs_info=vcs_info,
-           user_info=user_info())
+           user_email=v.email,
+           user_name=v.name)
 
     for _pkg_name, pkg_info in config['packages'].items():
         version_filename = pkg_info['version_file']

@@ -186,13 +186,10 @@ def main():
                          " one of %s" % (branch, allowed_branches))
 
     # Fix needed environment variables
+    v = utils.get_vcs_info()
     os.environ["DEVFLOW_BUILD_MODE"] = mode
-    git_config = original_repo.config_reader()
-    try:
-        os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
-        os.environ["DEBEMAIL"] = git_config.get_value("user", "email")
-    except:
-        print "Could not load user/email from config"
+    os.environ["DEBFULLNAME"] = v.name
+    os.environ["DEBEMAIL"] = v.email
 
     # Check that base version file and branch are correct
     versioning.get_python_version()
