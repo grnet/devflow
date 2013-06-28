@@ -304,10 +304,9 @@ def main():
     build_cmd = "git-buildpackage --git-export-dir=%s"\
                 " --git-upstream-branch=%s --git-debian-branch=%s"\
                 " --git-export=INDEX --git-ignore-new -sa"\
-                " --source-option='\"--extend-diff-ignore=%s\"'"\
+                " --source-option=--auto-commit"\
                 " --git-upstream-tag=%s"\
-                % (build_dir, branch, debian_branch, ignore_regexp,
-                   upstream_tag)
+                % (build_dir, branch, debian_branch, upstream_tag)
     if options.source_only:
         build_cmd += " -S"
     if not options.sign:
