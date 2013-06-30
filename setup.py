@@ -186,6 +186,7 @@ setup(
          'devflow-bump-version=devflow.versioning:bump_version_main',
          'devflow-update-version=devflow.versioning:update_version',
          'devflow-autopkg=devflow.autopkg:main',
+         'devflow-flow=devflow.flow:main',
          ],
       },
 )
