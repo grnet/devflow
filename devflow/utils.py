@@ -230,7 +230,13 @@ def undebianize(branch):
 
 
 def get_distribution_codename():
-    output = sh.lsb_release("-c")  # pylint: disable=E1101
-    _, codename = output.split("\t")
+    codename = sh.uname().lower()
+    if codename == "linux":
+        # lets try to be more specific using lsb_release
+        try:
+            output = sh.lsb_release("-c")  # pylint: disable=E1101
+            _, codename = output.split("\t")
+        except sh.CommandNotFound:
+            pass
     codename = codename.strip()
     return codename
