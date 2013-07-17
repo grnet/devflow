@@ -289,7 +289,8 @@ def main():
     # Add changelog to INDEX
     repo.git.add("debian/changelog")
     # Commit Changes
-    repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
+    repo.git.commit("-s", "debian/changelog",
+                    m="Bump version to %s" % debian_version)
     # Tag debian branch
     debian_branch_tag = "debian/" + utils.version_to_tag(debian_version)
     tag_message = "%s version %s" % (mode.capitalize(), debian_version)
