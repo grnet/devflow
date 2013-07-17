@@ -45,8 +45,6 @@ branch_type = namedtuple("branch_type", ["builds_snapshot", "builds_release",
                                          "versioned", "allowed_version_re",
                                          "debian_branch"])
 VERSION_RE = "[0-9]+\.[0-9]+(\.[0-9]+)*"  # pylint: disable=W1401
-HOTFIX_RE = \
-    "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE,  # pylint: disable=W1401
 
 BRANCH_TYPES = {
     "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE,
@@ -59,6 +57,6 @@ BRANCH_TYPES = {
     "master": branch_type(True, True, False,
                           "^%s$" % VERSION_RE, "debian"),
     "hotfix": branch_type(True, True, True,
-                          HOTFIX_RE,
+                          "^(?P<bverstr>^%s\.[1-9][0-9]*)$" % VERSION_RE,
                           "debian")}
 BASE_VERSION_FILE = "version"
