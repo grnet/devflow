@@ -80,12 +80,19 @@ def get_vcs_info():
     revid = get_commit_id(branch.commit, branch)
     revno = len(list(repo.iter_commits()))
     toplevel = repo.working_dir
+    config = repo.config_reader()
+    try:
+        name = config.get_value("user", "name")
+        email = config.get_value("user", "email")
+    except Exception as e:
+        raise ValueError("Can not read name/email from .gitconfig"
+                         " file.: %s" % e)
 
     info = namedtuple("vcs_info", ["branch", "revid", "revno",
-                                   "toplevel"])
+                                   "toplevel", "name", "email"])
 
     return info(branch=branch.name, revid=revid, revno=revno,
-                toplevel=toplevel)
+                toplevel=toplevel, name=name, email=email)
 
 
 def get_commit_id(commit, current_branch):
@@ -223,7 +230,13 @@ def undebianize(branch):
 
 
 def get_distribution_codename():
-    output = sh.lsb_release("-c")
-    _, codename = output.split("\t")
+    codename = sh.uname().lower().strip()
+    if codename == "linux":
+        # lets try to be more specific using lsb_release
+        try:
+            output = sh.lsb_release("-c")  # pylint: disable=E1101
+            _, codename = output.split("\t")
+        except sh.CommandNotFound as e:
+            pass
     codename = codename.strip()
     return codename

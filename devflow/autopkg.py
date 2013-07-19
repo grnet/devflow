@@ -133,7 +133,7 @@ def main():
     parser.add_option("--dist",
                       dest="dist",
                       default=None,
-                      help="Force distribution in Debian changelog"),
+                      help="Force distribution in Debian changelog")
     parser.add_option("-S", "--source-only",
                       dest="source_only",
                       default=False,
@@ -145,6 +145,11 @@ def main():
                       default=None,
                       help="Use this debian branch, instead of"
                            "auto-discovering the debian branch to use")
+    parser.add_option("--push-back",
+                      dest="push_back",
+                      default=False,
+                      action="store_true",
+                      help="Automatically push branches and tags to repo.")
 
     (options, args) = parser.parse_args()
 
@@ -186,13 +191,10 @@ def main():
                          " one of %s" % (branch, allowed_branches))
 
     # Fix needed environment variables
+    v = utils.get_vcs_info()
     os.environ["DEVFLOW_BUILD_MODE"] = mode
-    git_config = original_repo.config_reader()
-    try:
-        os.environ["DEBFULLNAME"] = git_config.get_value("user", "name")
-        os.environ["DEBEMAIL"] = git_config.get_value("user", "email")
-    except:
-        print "Could not load user/email from config"
+    os.environ["DEBFULLNAME"] = v.name
+    os.environ["DEBEMAIL"] = v.email
 
     # Check that base version file and branch are correct
     versioning.get_python_version()
@@ -237,10 +239,20 @@ def main():
     # Update the version files
     versioning.update_version()
 
+    if not options.sign:
+        sign_tag_opt = None
+    elif options.keyid:
+        sign_tag_opt = "-u=%s" % options.keyid
+    elif mode == "release":
+        sign_tag_opt = "-s"
+    else:
+        sign_tag_opt = None
+
     # Tag branch with python version
     branch_tag = python_version
+    tag_message = "%s version %s" % (mode.capitalize(), python_version)
     try:
-        repo.git.tag(branch_tag, branch)
+        repo.git.tag(branch_tag, branch, sign_tag_opt, "-m=%s" % tag_message)
     except GitCommandError:
         # Tag may already exist, if only the debian branch has changed
         pass
@@ -277,11 +289,13 @@ def main():
     # Add changelog to INDEX
     repo.git.add("debian/changelog")
     # Commit Changes
-    repo.git.commit("-s", "-a", m="Bump version to %s" % debian_version)
+    repo.git.commit("-s", "debian/changelog",
+                    m="Bump version to %s" % debian_version)
     # Tag debian branch
     debian_branch_tag = "debian/" + utils.version_to_tag(debian_version)
+    tag_message = "%s version %s" % (mode.capitalize(), debian_version)
     if mode == "release":
-        repo.git.tag(debian_branch_tag)
+        repo.git.tag(debian_branch_tag, sign_tag_opt, "-m=%s" % tag_message)
 
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
@@ -291,14 +305,14 @@ def main():
     version_files = []
     for _, pkg_info in config['packages'].items():
         version_files.append(pkg_info['version_file'])
-    ignore_regexp = "|".join(["^(%s)$" % vf for vf in version_files])
+    # Export version info to debuilg environment
+    os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     build_cmd = "git-buildpackage --git-export-dir=%s"\
                 " --git-upstream-branch=%s --git-debian-branch=%s"\
                 " --git-export=INDEX --git-ignore-new -sa"\
-                " --source-option='\"--extend-diff-ignore=%s\"'"\
+                " --source-option=--auto-commit"\
                 " --git-upstream-tag=%s"\
-                % (build_dir, branch, debian_branch, ignore_regexp,
-                   upstream_tag)
+                % (build_dir, branch, debian_branch, upstream_tag)
     if options.source_only:
         build_cmd += " -S"
     if not options.sign:
@@ -334,6 +348,10 @@ def main():
         for remote in ['origin', 'original_origin']:
             objects = [debian_branch, branch_tag, debian_branch_tag]
             print_green("git push %s %s" % (remote, " ".join(objects)))
+        if options.push_back:
+            objects = [debian_branch, branch_tag, debian_branch_tag]
+            repo.git.push("origin", *objects)
+            print_green("Automatically updated origin repo.")
 
 
 def create_temp_directory(suffix):
