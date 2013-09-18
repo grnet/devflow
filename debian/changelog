@@ -1,3 +1,9 @@
+devflow (0.12.1-1~wheezy) wheezy; urgency=low
+
+  * New upstream version
+
+ -- Christos Stavrakakis <cstavr@grnet.gr>  Wed, 18 Sep 2013 12:00:53 +0300
+
 devflow (0.11.6-1~squeeze) squeeze; urgency=low
 
   * New upstream version
@@ -51,3 +57,4 @@ devflow (0.1) unstable; urgency=low
   * Initial debian packaging for devflow.
 
  -- Stavrakakis Christos <cstavr@grnet.gr>  Wed, 16 Jan 2012 14:41:07 +0200
+
