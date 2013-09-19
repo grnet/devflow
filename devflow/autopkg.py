@@ -307,6 +307,7 @@ def main():
         version_files.append(pkg_info['version_file'])
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
+    os.environ["DEB_DEVFLOW_VERSION"] = python_version
     build_cmd = "git-buildpackage --git-export-dir=%s"\
                 " --git-upstream-branch=%s --git-debian-branch=%s"\
                 " --git-export=INDEX --git-ignore-new -sa"\
