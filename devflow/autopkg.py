@@ -252,7 +252,7 @@ def main():
     branch_tag = python_version
     tag_message = "%s version %s" % (mode.capitalize(), python_version)
     try:
-        repo.git.tag(branch_tag, branch, sign_tag_opt, "-m=%s" % tag_message)
+        repo.git.tag(branch_tag, branch, sign_tag_opt, "-m %s" % tag_message)
     except GitCommandError:
         # Tag may already exist, if only the debian branch has changed
         pass
@@ -295,7 +295,7 @@ def main():
     debian_branch_tag = "debian/" + utils.version_to_tag(debian_version)
     tag_message = "%s version %s" % (mode.capitalize(), debian_version)
     if mode == "release":
-        repo.git.tag(debian_branch_tag, sign_tag_opt, "-m=%s" % tag_message)
+        repo.git.tag(debian_branch_tag, sign_tag_opt, "-m %s" % tag_message)
 
     # Add version.py files to repo
     call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
@@ -307,6 +307,7 @@ def main():
         version_files.append(pkg_info['version_file'])
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
+    os.environ["DEB_DEVFLOW_VERSION"] = python_version
     build_cmd = "git-buildpackage --git-export-dir=%s"\
                 " --git-upstream-branch=%s --git-debian-branch=%s"\
                 " --git-export=INDEX --git-ignore-new -sa"\
