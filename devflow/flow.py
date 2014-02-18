@@ -159,7 +159,7 @@ class GitManager(object):
         if not feature_upstream in repo.branches:
             raise ValueError("Branch %s does not exist." % feature_upstream)
         feature_debian = "debian-%s" % feature_upstream
-        action = partial(self.edit_changelog, feature_upstream)
+        action = partial(self.edit_changelog, feature_upstream, "develop")
         query_action("Edit changelog", action = action)
 #        self.edit_changelog(feature_upstream)
         repo.git.checkout("develop")
@@ -175,14 +175,34 @@ class GitManager(object):
         if feature_debian in repo.branches:
             print "git branch -D %s" % feature_debian
 
-    def edit_changelog(self, branch):
+    def edit_changelog(self, branch, base_branch=None):
         repo = self.repo
         if not branch in repo.branches:
             raise ValueError("Branch %s does not exist." % branch)
+        if base_branch and not base_branch in repo.branches:
+            raise ValueError("Branch %s does not exist." % base_branch)
 
         repo.git.checkout(branch)
         topdir = repo.working_dir
         changelog = os.path.join(topdir, "Changelog")
+
+        lines = []
+        lines.append("#Changelog for %s\n" % branch)
+        if base_branch:
+            commits = repo.git.rev_list("%s..%s" % (base_branch, branch)).split("\n")
+            for c in commits:
+                commit = repo.commit(c)
+                lines.append(commit.message)
+        lines.append("\n")
+
+        f = open(changelog, 'rw+')
+        lines.extend(f.readlines())
+        f.seek(0)
+        f.truncate(0)
+        f.writelines(lines)
+        f.close()
+ 
+
         editor = os.getenv('EDITOR')
         if not editor:
             editor = 'vim'
