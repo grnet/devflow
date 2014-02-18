@@ -55,6 +55,16 @@ class GitManager(object):
         self.new_tags = []
         self.repo.git.pull("origin")
 
+    def get_branch(self, mode, version):
+        if mode not in ["release", "hotfix"]:
+            raise ValueError("Unknown mode: %s" % mode)
+        return "%s-%s" % (mode, version)
+
+    def get_debian_branch(self, mode, version):
+        if mode not in ["release", "hotfix"]:
+            raise ValueError("Unknown mode: %s" % mode)
+        return "debian-%s-%s" % (mode, version)
+
     @cleanup
     def start_release(self, version):
         self.start_common("release", version)
@@ -65,11 +75,51 @@ class GitManager(object):
 
     @cleanup
     def end_release(self, version):
-        self.end_common("release", version)
+        repo = self.repo
+        master = "master"
+        debian_master = "debian"
+        upstream = "develop"
+        debian = "debian-develop"
+        upstream_branch = self.get_branch("release", version)
+        debian_branch = self.get_debian_branch("release", version)
+        repo.git.checkout(upstream)
+        with conflicts():
+            repo.git.merge("--no-ff", upstream_branch)
+        repo.git.checkout(debian)
+        with conflicts():
+            repo.git.merge("--no-ff", debian_branch)
+
+        repo.git.checkout(master)
+        with conflicts():
+            repo.git.merge("--no-ff", upstream_branch)
+        repo.git.checkout(debian_master)
+        with conflicts():
+            repo.git.merge("--no-ff", debian_branch)
+
+        repo.git.checkout(upstream)
+        print "To remove obsolete branches run:"
+        print "git branch -d %s" % upstream_branch
+        print "git branch -d %s" % debian_branch
 
     @cleanup
     def end_hotfix(self, version):
-        self.end_common("hotfix", version)
+        repo = self.repo
+        upstream = "master"
+        debian = "debian"
+        upstream_branch = self.get_branch("hotfix", version)
+        debian_branch = self.get_debian_branch("hotfix", version)
+
+        repo.git.checkout(upstream)
+        with conflicts():
+            repo.git.merge("--no-ff", upstream_branch)
+        repo.git.checkout(debian)
+        with conflicts():
+            repo.git.merge("--no-ff", debian_branch)
+
+        repo.git.checkout(upstream)
+        print "To remove obsolete branches run:"
+        print "git branch -d %s" % upstream_branch
+        print "git branch -d %s" % debian_branch
 
     def start_common(self, mode, version):
         if mode not in ["release", "hotfix"]:
@@ -122,27 +172,7 @@ class GitManager(object):
             print "git branch -D %s" % feature_debian
 
     def end_common(self, mode, version):
-        if mode not in ["release", "hotfix"]:
-            raise ValueError("Unknown mode: %s" % mode)
-        repo = self.repo
-        master = "master"
-        upstream = "develop" if mode == "release" else "master"
-        debian = "debian-develop" if mode == "release" else "debian"
-        upstream_branch = "%s-%s" % (mode, version)
-        debian_branch = "debian-%s-%s" % (mode, version)
-        repo.git.checkout(upstream)
-        with conflicts():
-            repo.git.merge("--no-ff", upstream_branch)
-        repo.git.checkout(master)
-        with conflicts():
-            repo.git.merge("--no-ff", upstream_branch)
-        repo.git.checkout(debian)
-        with conflicts():
-            repo.git.merge("--no-ff", debian_branch)
-        repo.git.checkout(upstream)
-        print "To remove obsolete branches run:"
-        print "git branch -d %s" % upstream_branch
-        print "git branch -d %s" % debian_branch
+        pass
 
 
 def refhead(repo):
