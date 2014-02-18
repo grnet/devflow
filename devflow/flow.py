@@ -158,6 +158,7 @@ class GitManager(object):
         if not feature_upstream in repo.branches:
             raise ValueError("Branch %s does not exist." % feature_upstream)
         feature_debian = "debian-%s" % feature_upstream
+        self.edit_changelog(feature_upstream)
         repo.git.checkout("develop")
         with conflicts():
             repo.git.merge(feature_upstream)
@@ -170,6 +171,22 @@ class GitManager(object):
         print "git branch -D %s" % feature_upstream
         if feature_debian in repo.branches:
             print "git branch -D %s" % feature_debian
+
+    def edit_changelog(self, branch):
+        repo = self.repo
+        if not branch in repo.branches:
+            raise ValueError("Branch %s does not exist." % branch)
+
+        repo.git.checkout(branch)
+        topdir = repo.working_dir
+        changelog = os.path.join(topdir, "Changelog")
+        editor = os.getenv('EDITOR')
+        if not editor:
+            editor = 'vim'
+        call("%s %s" % (editor, changelog))
+        repo.git.add(changelog)
+        repo.git.commit(m="Update changelog")
+        print "Updated changelog on branch %s" % branch
 
     def end_common(self, mode, version):
         pass
