@@ -8,7 +8,8 @@ os.environ["GIT_PYTHON_TRACE"] = "full"
 from devflow import utils, versioning
 from devflow.version import __version__
 from devflow.autopkg import call
-from functools import wraps
+from devflow.ui import query_action
+from functools import wraps, partial
 from contextlib import contextmanager
 from git.exc import GitCommandError
 
@@ -158,7 +159,9 @@ class GitManager(object):
         if not feature_upstream in repo.branches:
             raise ValueError("Branch %s does not exist." % feature_upstream)
         feature_debian = "debian-%s" % feature_upstream
-        self.edit_changelog(feature_upstream)
+        action = partial(self.edit_changelog, feature_upstream)
+        query_action("Edit changelog", action = action)
+#        self.edit_changelog(feature_upstream)
         repo.git.checkout("develop")
         with conflicts():
             repo.git.merge(feature_upstream)
