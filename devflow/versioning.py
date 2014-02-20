@@ -73,6 +73,36 @@ def get_base_version(vcs_info):
     f.close()
     return lines[0]
 
+def validate_version(base_version, vcs_info):
+    branch = vcs_info.branch
+
+    brnorm = utils.normalize_branch_name(branch)
+    btypestr = utils.get_branch_type(branch)
+
+    try:
+        btype = BRANCH_TYPES[btypestr]
+    except KeyError:
+        allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
+        raise ValueError("Malformed branch name '%s', cannot classify as one "
+                         "of %s" % (btypestr, allowed_branches))
+
+    if btype.versioned:
+        try:
+            bverstr = brnorm.split("-")[1]
+        except IndexError:
+            # No version
+            raise ValueError("Branch name '%s' should contain version" %
+                             branch)
+
+        # Check that version is well-formed
+        if not re.match(VERSION_RE, bverstr):
+            raise ValueError("Malformed version '%s' in branch name '%s'" %
+                             (bverstr, branch))
+
+    m = re.match(btype.allowed_version_re, base_version)
+    if not m or (btype.versioned and m.groupdict()["bverstr"] != bverstr):
+        raise ValueError("Base version '%s' unsuitable for branch name '%s'" %
+                         (base_version, branch))
 
 def python_version(base_version, vcs_info, mode):
     """Generate a Python distribution version following devtools conventions.
@@ -191,36 +221,11 @@ def python_version(base_version, vcs_info, mode):
 
 
     """
-
+    validate_version(base_version, vcs_info)
     branch = vcs_info.branch
-
-    brnorm = utils.normalize_branch_name(branch)
     btypestr = utils.get_branch_type(branch)
-
-    try:
-        btype = BRANCH_TYPES[btypestr]
-    except KeyError:
-        allowed_branches = ", ".join(x for x in BRANCH_TYPES.keys())
-        raise ValueError("Malformed branch name '%s', cannot classify as one "
-                         "of %s" % (btypestr, allowed_branches))
-
-    if btype.versioned:
-        try:
-            bverstr = brnorm.split("-")[1]
-        except IndexError:
-            # No version
-            raise ValueError("Branch name '%s' should contain version" %
-                             branch)
-
-        # Check that version is well-formed
-        if not re.match(VERSION_RE, bverstr):
-            raise ValueError("Malformed version '%s' in branch name '%s'" %
-                             (bverstr, branch))
-
-    m = re.match(btype.allowed_version_re, base_version)
-    if not m or (btype.versioned and m.groupdict()["bverstr"] != bverstr):
-        raise ValueError("Base version '%s' unsuitable for branch name '%s'" %
-                         (base_version, branch))
+    #this cannot fail
+    btype = BRANCH_TYPES[btypestr]
 
     if mode not in ["snapshot", "release"]:
         raise ValueError("Specified mode '%s' should be one of 'snapshot' or "
