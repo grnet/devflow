@@ -39,3 +39,11 @@ def query_action(question, default="yes", action=None):
     answer = query_yes_no(question, default)
     if answer and action is not None:
         action()
+
+def query_user(question, default=""):
+    prompt = "[" + default + "]"
+    sys.stdout.write(question + prompt)
+    answer = raw_input()
+    if answer == "":
+        return default
+    return answer
