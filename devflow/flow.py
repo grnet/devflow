@@ -302,7 +302,7 @@ class GitManager(object):
         upstream_branch = self.get_branch("release", version)
         debian_branch = self.get_debian_branch("release", version)
         tag = upstream_branch
-        debial_tag = "debian/" + tag
+        debian_tag = "debian/" + tag
 
         edit_action = partial(self.edit_changelog, upstream_branch, "develop")
         self.check_edit_changelog(edit_action, args, default=True)
@@ -321,7 +321,7 @@ class GitManager(object):
         repo.git.checkout(master)
         repo.git.tag("%s" % tag)
         repo.git.checkout(debian)
-        repo.git.tag("%s" % debian)
+        repo.git.tag("%s" % debian_tag)
 
         #merge release changes to upstream
         self.merge_branches(upstream, upstream_branch, args, default=True)
