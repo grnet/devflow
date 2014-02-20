@@ -412,17 +412,9 @@ def bump_version_main():
         sys.stdout.write("usage: %s version\n" % sys.argv[0])
 
 
-def bump_version(new_version):
-    """Set new base version to base version file and commit"""
-    v = utils.get_vcs_info()
-    mode = utils.get_build_mode()
-
-    # Check that new base version is valid
-    python_version(new_version, v, mode)
-
+def _bump_version(new_version, v):
     repo = utils.get_repository()
     toplevel = repo.working_dir
-
     old_version = get_base_version(v)
     sys.stdout.write("Current base version is '%s'\n" % old_version)
 
@@ -443,6 +435,16 @@ def bump_version(new_version):
     repo.git.add(version_file)
     repo.git.commit(m="Bump version to %s" % new_version)
     sys.stdout.write("Update version file and commited\n")
+
+
+def bump_version(new_version):
+    """Set new base version to base version file and commit"""
+    v = utils.get_vcs_info()
+
+    # Check that new base version is valid
+    validate_version(new_version, v)
+    _bump_version(new_version, v)
+
 
 
 def main():
