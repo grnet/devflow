@@ -7,7 +7,7 @@ logging.basicConfig()
 from argparse import ArgumentParser
 
 os.environ["GIT_PYTHON_TRACE"] = "full"
-from devflow import utils, versioning
+from devflow import utils, versioning, RC_RE
 from devflow.version import __version__
 from devflow.autopkg import call
 from devflow.ui import query_action, query_user, query_yes_no
@@ -306,6 +306,12 @@ class GitManager(object):
 
         edit_action = partial(self.edit_changelog, upstream_branch, "develop")
         self.check_edit_changelog(edit_action, args, default=True)
+
+        vcs = utils.get_vcs_info()
+        release_version = versioning.get_base_version(vcs)
+        if re.match('.*'+RC_RE, release_version):
+            new_version = re.sub(RC_RE, '', release_version)
+            versioning._bump_version(new_version, vcs)
 
         #merge to master
         self._merge_branches(master, upstream_branch)
