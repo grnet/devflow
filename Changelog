@@ -1,3 +1,5 @@
+#Changelog for feature-improve-changelog
+* Prefix commit message in changelog with '* '
 #Changelog for feature-fix-release-version
 * Fix debian tag when finishing release
 * Strip rc from version when ending a release
