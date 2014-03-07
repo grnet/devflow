@@ -184,7 +184,7 @@ class GitManager(object):
             commits = repo.git.rev_list("%s..%s" % (base_branch, branch)).split("\n")
             for c in commits:
                 commit = repo.commit(c)
-                lines.append(commit.message)
+                lines.append("* " + commit.message.split("\n")[0])
         lines.append("\n")
 
         f = open(changelog, 'rw+')
