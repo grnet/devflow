@@ -10,7 +10,7 @@ been developed primarily for use with Synnefo, other projects may find it
 useful too.
 
 Quickstart
-==========
+----------
 
 ```
 import os
