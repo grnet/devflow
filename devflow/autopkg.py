@@ -304,7 +304,8 @@ def main():
     cd(repo_dir)
     version_files = []
     for _, pkg_info in config['packages'].items():
-        version_files.append(pkg_info['version_file'])
+        if pkg_info.get("version_file"):
+            version_files.extend(pkg_info.as_list('version_file'))
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     os.environ["DEB_DEVFLOW_VERSION"] = python_version
