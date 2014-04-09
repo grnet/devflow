@@ -53,7 +53,7 @@ except ImportError:
 
 # Package info
 VERSION = __version__
-README = open(os.path.join(HERE, 'README')).read()
+README = open(os.path.join(HERE, 'README.md')).read()
 CHANGES = open(os.path.join(HERE, 'Changelog')).read()
 SHORT_DESCRIPTION = 'A set of tools to ease versioning and use of git flow.'
 

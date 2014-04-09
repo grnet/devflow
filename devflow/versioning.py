@@ -44,6 +44,7 @@ of the repository code.
 import os
 import re
 import sys
+import itertools
 
 from distutils import log  # pylint: disable=E0611
 
@@ -72,6 +73,7 @@ def get_base_version(vcs_info):
         raise ValueError("File '%s' should contain a single non-comment line.")
     f.close()
     return lines[0]
+
 
 def validate_version(base_version, vcs_info):
     branch = vcs_info.branch
@@ -103,6 +105,7 @@ def validate_version(base_version, vcs_info):
     if not m or (btype.versioned and m.groupdict()["bverstr"] != bverstr):
         raise ValueError("Base version '%s' unsuitable for branch name '%s'" %
                          (base_version, branch))
+
 
 def python_version(base_version, vcs_info, mode):
     """Generate a Python distribution version following devtools conventions.
@@ -380,27 +383,43 @@ def update_version():
            "DEVFLOW_USER_NAME": v.name}
 
     for _pkg_name, pkg_info in config['packages'].items():
-        version_filename = pkg_info.get('version_file')
-        if not version_filename:
-            continue
-        version_template = pkg_info.get('version_template')
-        if version_template:
-            vtemplate_file = os.path.join(toplevel, version_template)
-            try:
-                with file(vtemplate_file) as f:
-                    content = f.read(-1) % env
-            except IOError as e:
-                if e.errno == 2:
-                    raise RuntimeError("devflow.conf contains '%s' as a"
-                                       " version template file, but file does"
-                                       " not exists!" % vtemplate_file)
-                else:
-                    raise
+        if pkg_info.get("version_file"):
+            version_filenames = pkg_info.as_list("version_file")
         else:
-            content = DEFAULT_VERSION_FILE % env
-        with file(os.path.join(toplevel, version_filename), 'w+') as f:
-            log.info("Updating version file '%s'" % version_filename)
-            f.write(content)
+            continue
+        if pkg_info.get('version_template'):
+            version_templates = pkg_info.as_list("version_template")
+        else:
+            version_templates = itertools.repeat(None, len(version_filenames))
+            version_templates = list(version_templates)
+
+        if len(version_filenames) != len(version_templates):
+            raise RuntimeError("devflow.conf contains '%s' version files and"
+                               " '%s' version templates. The number of version"
+                               " files and templates must match."
+                               % (len(version_filenames),
+                                   len(version_templates)))
+
+        v_files_templates = zip(version_filenames, version_templates)
+        for (vfilename, vtemplate) in v_files_templates:
+            if vtemplate:
+                vtemplate_file = os.path.join(toplevel, vtemplate)
+                try:
+                    with file(vtemplate_file) as f:
+                        content = f.read(-1) % env
+                except IOError as e:
+                    if e.errno == 2:
+                        raise RuntimeError("devflow.conf contains '%s' as a"
+                                           " version template file, but file"
+                                           " does not exists!"
+                                           % vtemplate_file)
+                    else:
+                        raise
+            else:
+                content = DEFAULT_VERSION_FILE % env
+            with file(os.path.join(toplevel, vfilename), 'w+') as f:
+                log.info("Updating version file '%s'" % vfilename)
+                f.write(content)
 
 
 def bump_version_main():
@@ -444,7 +463,6 @@ def bump_version(new_version):
     # Check that new base version is valid
     validate_version(new_version, v)
     _bump_version(new_version, v)
-
 
 
 def main():
