@@ -305,7 +305,7 @@ def main():
             version_files.extend(pkg_info.as_list('version_file'))
 
     # Add version.py files to repo
-    repo.git.add("-f ", *version_files)
+    repo.git.add("-f", *version_files)
 
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
