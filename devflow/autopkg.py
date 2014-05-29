@@ -297,15 +297,16 @@ def main():
     if mode == "release":
         repo.git.tag(debian_branch_tag, sign_tag_opt, "-m %s" % tag_message)
 
-    # Add version.py files to repo
-    call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
-
     # Create debian packages
     cd(repo_dir)
     version_files = []
     for _, pkg_info in config['packages'].items():
         if pkg_info.get("version_file"):
             version_files.extend(pkg_info.as_list('version_file'))
+
+    # Add version.py files to repo
+    repo.git.add("-f ", *version_files)
+
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     os.environ["DEB_DEVFLOW_VERSION"] = python_version
