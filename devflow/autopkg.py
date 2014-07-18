@@ -1,4 +1,4 @@
-# Copyright 2012, 2013 GRNET S.A. All rights reserved.
+# Copyright 2012-2014 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -44,25 +44,6 @@ from devflow import versioning
 from devflow import utils
 from devflow import BRANCH_TYPES
 
-if sys.stdout.isatty():
-    try:
-        import colors
-        use_colors = True
-    except AttributeError:
-        use_colors = False
-else:
-    use_colors = False
-
-
-if use_colors:
-    red = colors.red
-    green = colors.green
-else:
-    red = lambda x: x
-    green = lambda x: x
-
-print_red = lambda x: sys.stdout.write(red(x) + "\n")
-print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
 AVAILABLE_MODES = ["release", "snapshot"]
 
@@ -150,8 +131,37 @@ def main():
                       default=False,
                       action="store_true",
                       help="Automatically push branches and tags to repo.")
+    parser.add_option("--color",
+                      dest="color_output",
+                      default="auto",
+                      help="Enable/disable colored output. Default mode is" +
+                           " auto, available options are yes/no")
 
     (options, args) = parser.parse_args()
+
+    if options.color_output == "yes":
+        use_colors = True
+    elif options.color_output == "no":
+        use_colors = False
+    else:
+        if sys.stdout.isatty():
+            use_colors = True
+        else:
+            use_colors = False
+
+    red = lambda x: x
+    green = lambda x: x
+
+    if use_colors:
+        try:
+            import colors
+            red = colors.red
+            green = colors.green
+        except AttributeError:
+            pass
+
+    print_red = lambda x: sys.stdout.write(red(x) + "\n")
+    print_green = lambda x: sys.stdout.write(green(x) + "\n")
 
     if options.help:
         print_help(parser.get_prog_name())
@@ -297,14 +307,16 @@ def main():
     if mode == "release":
         repo.git.tag(debian_branch_tag, sign_tag_opt, "-m %s" % tag_message)
 
-    # Add version.py files to repo
-    call("grep \"__version_vcs\" -r . -l -I | xargs git add -f")
-
     # Create debian packages
     cd(repo_dir)
     version_files = []
     for _, pkg_info in config['packages'].items():
-        version_files.append(pkg_info['version_file'])
+        if pkg_info.get("version_file"):
+            version_files.extend(pkg_info.as_list('version_file'))
+
+    # Add version.py files to repo
+    repo.git.add("-f", *version_files)
+
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     os.environ["DEB_DEVFLOW_VERSION"] = python_version
