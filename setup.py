@@ -53,7 +53,7 @@ except ImportError:
 
 # Package info
 VERSION = __version__
-README = open(os.path.join(HERE, 'README')).read()
+README = open(os.path.join(HERE, 'README.md')).read()
 CHANGES = open(os.path.join(HERE, 'Changelog')).read()
 SHORT_DESCRIPTION = 'A set of tools to ease versioning and use of git flow.'
 
@@ -65,7 +65,7 @@ CLASSIFIERS = []
 
 # Package requirements
 INSTALL_REQUIRES = [
-    'gitpython', 'sh', 'configobj', 'ansicolors'
+    'gitpython>=0.3.2RC1', 'sh', 'configobj', 'ansicolors'
 ]
 
 # Provided as an attribute, so you can append to these instead
