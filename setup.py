@@ -65,7 +65,7 @@ CLASSIFIERS = []
 
 # Package requirements
 INSTALL_REQUIRES = [
-    'gitpython', 'sh', 'configobj', 'ansicolors'
+    'gitpython>=0.3.2RC1', 'sh', 'configobj', 'ansicolors'
 ]
 
 # Provided as an attribute, so you can append to these instead
