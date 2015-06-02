@@ -59,6 +59,9 @@ def get_config(path=None):
         toplevel = get_vcs_info().toplevel
         path = os.path.join(toplevel, "devflow.conf")
 
+    if not os.path.isfile(path):
+	raise RuntimeError("Config file: '%s' does not exist!" % path)
+
     config = ConfigObj(path)
     return config
 
