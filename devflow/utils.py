@@ -48,7 +48,7 @@ def get_repository(path=None):
     try:
         return git.Repo(path)
     except git.InvalidGitRepositoryError:
-        msg = "Cound not retrivie git information. Directory '%s'"\
+        msg = "Cound not retrieve git information. Directory '%s'"\
               " is not a git repository!" % path
         raise RuntimeError(msg)
 
@@ -102,7 +102,7 @@ def get_commit_id(commit, current_branch):
     """Return the commit ID
 
     If the commit is a 'merge' commit, and one of the parents is a
-    debian branch we return a compination of the parents commits.
+    debian branch we return a combination of the parents commits.
 
     """
     def short_id(commit):

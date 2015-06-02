@@ -31,7 +31,7 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
-"""Helper script for automatic build of debian packages."""
+"""Helper script for automatic build of Debian packages."""
 
 import os
 import sys
@@ -47,9 +47,9 @@ from devflow import BRANCH_TYPES
 
 AVAILABLE_MODES = ["release", "snapshot"]
 
-DESCRIPTION = """Tool for automatical build of debian packages.
+DESCRIPTION = """Tool for automatic build of Debian packages.
 
-%(prog)s is a helper script for automatic build of debian packages from
+%(prog)s is a helper script for automatic build of Debian packages from
 repositories that follow the `git flow` development model
 <http://nvie.com/posts/a-successful-git-branching-model/>.
 
@@ -60,11 +60,11 @@ following steps:
     * Compute the version of the new package and update the python
       version files
     * Create a new entry in debian/changelog, using `git-dch`
-    * Create the debian packages, using `git-buildpackage`
+    * Create the Debian packages, using `git-buildpackage`
     * Tag the appropriate branches if in `release` mode
 
-%(prog)s will work with the packages that are declared in `autopkg.conf`
-file, which must exist in the toplevel directory of the git repository.
+%(prog)s will work with the packages that are declared in `devflow.conf'
+file, which must exist in the top-level directory of the git repository.
 
 """
 
@@ -90,7 +90,7 @@ def main():
     parser.add_option("-b", "--build-dir",
                       dest="build_dir",
                       default=None,
-                      help="Directory to store created pacakges")
+                      help="Directory to store created packages")
     parser.add_option("-r", "--repo-dir",
                       dest="repo_dir",
                       default=None,
