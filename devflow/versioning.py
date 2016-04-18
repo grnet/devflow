@@ -227,7 +227,7 @@ def python_version(base_version, vcs_info, mode):
     validate_version(base_version, vcs_info)
     branch = vcs_info.branch
     btypestr = utils.get_branch_type(branch)
-    #this cannot fail
+    # this cannot fail
     btype = BRANCH_TYPES[btypestr]
 
     if mode not in ["snapshot", "release"]:

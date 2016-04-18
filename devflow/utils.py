@@ -60,7 +60,7 @@ def get_config(path=None):
         path = os.path.join(toplevel, "devflow.conf")
 
     if not os.path.isfile(path):
-	raise RuntimeError("Config file: '%s' does not exist!" % path)
+        raise RuntimeError("Config file: '%s' does not exist!" % path)
 
     config = ConfigObj(path)
     return config

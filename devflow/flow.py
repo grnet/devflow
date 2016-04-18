@@ -3,7 +3,7 @@ import re
 
 import logging
 logging.basicConfig()
-#from optparse import OptionParser
+
 from argparse import ArgumentParser
 
 os.environ["GIT_PYTHON_TRACE"] = "full"
@@ -47,7 +47,7 @@ def conflicts():
     except GitCommandError as e:
         if e.status != 128:
             print "An error occured. Resolve it and type 'exit 0'"
-            tmpbashrc=create_temp_file("bashrc")
+            tmpbashrc = create_temp_file("bashrc")
             f = open(tmpbashrc, 'w')
             f.write("source $HOME/.bashrc ; export PS1=(Conflict)\"$PS1\"")
             f.close()
@@ -56,21 +56,24 @@ def conflicts():
         else:
             raise
 
+
 def get_release_version(develop_version):
     version = develop_version.rstrip('next')
     parts = version.split('.')
     major_version = int(parts[0])
     minor_version = int(parts[1])
-    #return str(major_version) + '.' + str(minor_version+1) + 'rc1'
+    # return str(major_version) + '.' + str(minor_version+1) + 'rc1'
     return str(major_version) + '.' + str(minor_version+1)
 
+
 def get_develop_version_from_release(release_version):
-    #version = re.sub('rc[0-9]+$', '', release_version)
+    # version = re.sub('rc[0-9]+$', '', release_version)
     version = release_version
     parts = version.split('.')
     major_version = int(parts[0])
     minor_version = int(parts[1])
     return str(major_version) + '.' + str(minor_version+1) + 'next'
+
 
 def get_hotfix_version(version):
     parts = version.split('.')
@@ -81,8 +84,9 @@ def get_hotfix_version(version):
     else:
         hotfix_version = 0
 
-    return str(major_version) + '.' + str(minor_version) + '.'\
-            + str(hotfix_version+1)
+    return str(major_version) + '.' + str(minor_version) + '.' \
+        + str(hotfix_version+1)
+
 
 class GitManager(object):
     def __init__(self):
@@ -94,7 +98,7 @@ class GitManager(object):
         self.log.info("Repository: %s. HEAD: %s", self.repo, self.start_hex)
         self.new_branches = []
         self.new_tags = []
-        #self.repo.git.pull("origin")
+        # self.repo.git.pull("origin")
 
     def get_branch(self, mode, version):
         if mode not in ["release", "hotfix"]:
@@ -106,10 +110,10 @@ class GitManager(object):
             raise ValueError("Unknown mode: %s" % mode)
         return "debian-%s-%s" % (mode, version)
 
-    def doit(self, action_yes=None, action_no=None, question="Do it", args=None,
-            default=False):
+    def doit(self, action_yes=None, action_no=None, question="Do it",
+             args=None, default=False):
         if not args.defaults:
-            ret = query_yes_no(question, default = "yes" if default else "no")
+            ret = query_yes_no(question, default="yes" if default else "no")
         else:
             ret = default
 
@@ -122,7 +126,6 @@ class GitManager(object):
         print "To remove obsolete branches run:"
         for b in branches:
             print "git branch -D %s" % b
-
 
     def __cleanup_branches(self, branches):
         repo = self.repo
@@ -137,12 +140,11 @@ class GitManager(object):
                 self.__print_cleanup(branches)
             return
 
-        question="Remove branches %s" % branches
+        question = "Remove branches %s" % branches
         action_yes = partial(self.__cleanup_branches, branches)
         action_no = partial(self.__print_cleanup, branches)
         self.doit(action_yes=action_yes, action_no=action_no,
                   question=question, args=args, default=default)
-
 
     def check_edit_changelog(self, edit_action, args, default=True):
         if args.edit_changelog is not None:
@@ -169,9 +171,9 @@ class GitManager(object):
 
     def edit_changelog(self, branch, base_branch=None):
         repo = self.repo
-        if not branch in repo.branches:
+        if branch not in repo.branches:
             raise ValueError("Branch %s does not exist." % branch)
-        if base_branch and not base_branch in repo.branches:
+        if base_branch and base_branch not in repo.branches:
             raise ValueError("Branch %s does not exist." % base_branch)
 
         repo.git.checkout(branch)
@@ -181,7 +183,8 @@ class GitManager(object):
         lines = []
         lines.append("#Changelog for %s\n" % branch)
         if base_branch:
-            commits = repo.git.rev_list("%s..%s" % (base_branch, branch)).split("\n")
+            commits = repo.git.rev_list(
+                "%s..%s" % (base_branch, branch)).split("\n")
             for c in commits:
                 commit = repo.commit(c)
                 lines.append("* " + commit.message.split("\n")[0])
@@ -216,7 +219,7 @@ class GitManager(object):
             if not args.defaults:
                 version = query_user("Release version", default=version)
         else:
-            #validate version?
+            # validate version?
             pass
         rc_version = "%src1" % version
         new_develop_version = "%snext" % version
@@ -224,13 +227,13 @@ class GitManager(object):
         upstream_branch = self.get_branch("release", version)
         debian_branch = self.get_debian_branch("release", version)
 
-        #create release branch
+        # create release branch
         repo.git.branch(upstream_branch, upstream)
         self.new_branches.append(upstream_branch)
         repo.git.checkout(upstream_branch)
         versioning.bump_version(rc_version)
 
-        #create debian release branch
+        # create debian release branch
         repo.git.checkout(debian)
         repo.git.branch(debian_branch, debian)
         self.new_branches.append(debian_branch)
@@ -238,12 +241,11 @@ class GitManager(object):
         repo.git.checkout(upstream_branch)
         repo.git.checkout(debian)
 
-        #bump develop version
+        # bump develop version
         repo.git.checkout(upstream)
         versioning.bump_version(new_develop_version)
 
         repo.git.checkout(upstream_branch)
-
 
     @cleanup
     def start_hotfix(self, args):
@@ -251,8 +253,8 @@ class GitManager(object):
         upstream = "master"
         debian = "debian"
         repo.git.checkout(upstream)
-        #maybe provide major.minor version, find the latest release/hotfix and
-        #branch from there ?
+        # maybe provide major.minor version, find the latest release/hotfix and
+        # branch from there ?
 
         vcs = utils.get_vcs_info()
         version = versioning.get_base_version(vcs)
@@ -261,7 +263,7 @@ class GitManager(object):
             if not args.defaults:
                 version = query_user("Hotfix version", default=version)
         else:
-            #validate version?
+            # validate version?
             pass
 
         rc_version = "%src1" % version
@@ -270,13 +272,13 @@ class GitManager(object):
         upstream_branch = self.get_branch("hotfix", version)
         debian_branch = self.get_debian_branch("hotfix", version)
 
-        #create hotfix branch
+        # create hotfix branch
         repo.git.branch(upstream_branch, upstream)
         self.new_branches.append(upstream_branch)
         repo.git.checkout(upstream_branch)
         versioning.bump_version(rc_version)
 
-        #create debian hotfix branch
+        # create debian hotfix branch
         repo.git.checkout(debian)
         repo.git.branch(debian_branch, debian)
         self.new_branches.append(debian_branch)
@@ -284,10 +286,10 @@ class GitManager(object):
         repo.git.checkout(upstream_branch)
         repo.git.checkout(debian)
 
-        #bump develop version. Ask first or verify we have the same
-        #major.minornext?
-        #repo.git.checkout(upstream)
-        #versioning.bump_version(new_develop_version)
+        # bump develop version. Ask first or verify we have the same
+        # major.minornext?
+        # repo.git.checkout(upstream)
+        # versioning.bump_version(new_develop_version)
 
         repo.git.checkout(upstream_branch)
 
@@ -313,17 +315,17 @@ class GitManager(object):
             new_version = re.sub(RC_RE, '', release_version)
             versioning._bump_version(new_version, vcs)
 
-        #merge to master
+        # merge to master
         self._merge_branches(master, upstream_branch)
         self._merge_branches(debian_master, debian_branch)
 
-        #create tags
+        # create tags
         repo.git.checkout(master)
         repo.git.tag("%s" % tag)
         repo.git.checkout(debian)
         repo.git.tag("%s" % debian_tag)
 
-        #merge release changes to upstream
+        # merge release changes to upstream
         self.merge_branches(upstream, upstream_branch, args, default=True)
         self.merge_branches(debian, debian_branch, args, default=True)
 
@@ -342,7 +344,7 @@ class GitManager(object):
         upstream_branch = self.get_branch("hotfix", version)
         debian_branch = self.get_debian_branch("hotfix", version)
 
-        #create tags?
+        # create tags?
 
         self._merge_branches(upstream, upstream_branch)
         self._merge_branches(debian, debian_branch)
@@ -368,14 +370,14 @@ class GitManager(object):
         feature_name = args.feature_name
         repo = self.repo
         feature_upstream = "feature-%s" % feature_name
-        if not feature_upstream in repo.branches:
+        if feature_upstream not in repo.branches:
             raise ValueError("Branch %s does not exist." % feature_upstream)
         feature_debian = "debian-%s" % feature_upstream
 
         edit_action = partial(self.edit_changelog, feature_upstream, "develop")
         self.check_edit_changelog(edit_action, args, default=True)
 
-        #merge to develop
+        # merge to develop
         self._merge_branches("develop", feature_upstream)
         if feature_debian in repo.branches:
             self._merge_branches("debian-develop", feature_debian)
@@ -394,92 +396,88 @@ def refhead(repo):
 def main():
     parser = ArgumentParser(description="Devflow tool")
     parser.add_argument('-V', '--version', action='version',
-            version='devflow-flow %s' % __version__)
-    parser.add_argument('-d', '--defaults', action='store_true', default=False,
-            help="Assume default on every choice, unless a value is provided")
+                        version='devflow-flow %s' % __version__)
+    parser.add_argument(
+        '-d', '--defaults', action='store_true', default=False,
+        help="Assume default on every choice, unless a value is provided")
 
     subparsers = parser.add_subparsers()
 
-
     init_parser = subparsers.add_parser('init',
-            help="Initialize a new devflow repo")
+                                        help="Initialize a new devflow repo")
     init_parser.add_argument('-m', '--master', type=str, nargs='?',
-            help="Master branch")
+                             help="Master branch")
     init_parser.add_argument('-d', '--develop', type=str, nargs='?',
-            help="Develop branch")
+                             help="Develop branch")
     init_parser.set_defaults(func='init_repo')
-
 
     feature_parser = subparsers.add_parser('feature', help="Feature options")
     feature_subparsers = feature_parser.add_subparsers()
 
-    feature_start_parser = feature_subparsers.add_parser('start',
-            help="Start a new feature")
+    feature_start_parser = feature_subparsers.add_parser(
+        'start', help="Start a new feature")
     feature_start_parser.set_defaults(func='start_feature')
     feature_start_parser.add_argument('feature_name', type=str,
-            help="Name of the feature")
+                                      help="Name of the feature")
 
-    feature_finish_parser = feature_subparsers.add_parser('finish',
-            help="Finish a feature")
+    feature_finish_parser = feature_subparsers.add_parser(
+        'finish', help="Finish a feature")
     feature_finish_parser.set_defaults(func='end_feature')
     feature_finish_parser.add_argument('feature_name', type=str,
-            help="Name of the feature")
-    feature_finish_parser.add_argument('--no-edit-changelog',
-            action='store_const', const=False, dest='edit_changelog',
-            help="Do not edit the changelog")
-    feature_finish_parser.add_argument('--no-cleanup', action='store_const',
-            const=True, dest='cleanup', help="Do not cleanup branches")
+                                       help="Name of the feature")
+    feature_finish_parser.add_argument(
+        '--no-edit-changelog', action='store_const', const=False,
+        dest='edit_changelog', help="Do not edit the changelog")
+    feature_finish_parser.add_argument(
+        '--no-cleanup', action='store_const', const=True, dest='cleanup',
+        help="Do not cleanup branches")
 
     release_parser = subparsers.add_parser('release', help="release options")
     release_subparsers = release_parser.add_subparsers()
 
-
-    release_start_parser = release_subparsers.add_parser('start',
-            help="Start a new release")
-    release_start_parser.add_argument('--version', type=str,
-            help="Version of the release")
-    release_start_parser.add_argument('--develop-version', type=str,
-            help="New develop version")
+    release_start_parser = release_subparsers.add_parser(
+        'start', help="Start a new release")
+    release_start_parser.add_argument(
+        '--version', type=str, help="Version of the release")
+    release_start_parser.add_argument(
+        '--develop-version', type=str, help="New develop version")
     release_start_parser.set_defaults(func='start_release')
 
-
-    release_finish_parser = release_subparsers.add_parser('finish',
-            help="Finish a release")
-    release_finish_parser.add_argument('version', type=str,
-            help="Version of the release")
-    release_finish_parser.add_argument('--no-edit-changelog',
-            action='store_const', const=False, dest='edit_changelog',
-            help="Do not edit the changelog")
-    release_finish_parser.add_argument('--no-cleanup', action='store_const',
-            const=True, dest='cleanup', help="Do not cleanup branches")
+    release_finish_parser = release_subparsers.add_parser(
+        'finish', help="Finish a release")
+    release_finish_parser.add_argument(
+        'version', type=str, help="Version of the release")
+    release_finish_parser.add_argument(
+        '--no-edit-changelog', action='store_const', const=False,
+        dest='edit_changelog', help="Do not edit the changelog")
+    release_finish_parser.add_argument(
+        '--no-cleanup', action='store_const', const=True, dest='cleanup',
+        help="Do not cleanup branches")
 
     release_finish_parser.set_defaults(func='end_release')
 
     hotfix_parser = subparsers.add_parser('hotfix', help="hotfix options")
     hotfix_subparsers = hotfix_parser.add_subparsers()
 
-
-    hotfix_start_parser = hotfix_subparsers.add_parser('start',
-            help="Start a new hotfix")
-    hotfix_start_parser.add_argument('--version', type=str,
-            help="Version of the hotfix")
-    hotfix_start_parser.add_argument('--develop-version', type=str,
-            help="New develop version")
+    hotfix_start_parser = hotfix_subparsers.add_parser(
+        'start', help="Start a new hotfix")
+    hotfix_start_parser.add_argument(
+        '--version', type=str, help="Version of the hotfix")
+    hotfix_start_parser.add_argument(
+        '--develop-version', type=str, help="New develop version")
     hotfix_start_parser.set_defaults(func='start_hotfix')
 
-
-    hotfix_finish_parser = hotfix_subparsers.add_parser('finish',
-            help="Finish a hotfix")
-    hotfix_finish_parser.add_argument('version', type=str,
-            help="Version of the hotfix")
-    hotfix_finish_parser.add_argument('--no-edit-changelog',
-            action='store_const', const=False, dest='edit_changelog',
-            help="Do not edit the changelog")
-    hotfix_finish_parser.add_argument('--no-cleanup', action='store_const',
-            const=True, dest='cleanup', help="Do not cleanup branches")
+    hotfix_finish_parser = hotfix_subparsers.add_parser(
+        'finish', help="Finish a hotfix")
+    hotfix_finish_parser.add_argument(
+        'version', type=str, help="Version of the hotfix")
+    hotfix_finish_parser.add_argument(
+        '--no-edit-changelog', action='store_const', const=False,
+        dest='edit_changelog', help="Do not edit the changelog")
+    hotfix_finish_parser.add_argument(
+        '--no-cleanup', action='store_const', const=True, dest='cleanup',
+        help="Do not cleanup branches")
     hotfix_finish_parser.set_defaults(func='end_hotfix')
-
-
 
     args = parser.parse_args()
 
