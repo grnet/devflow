@@ -31,9 +31,6 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 #
-import distribute_setup
-distribute_setup.use_setuptools()
-
 import os
 import sys
 
