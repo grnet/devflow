@@ -239,7 +239,7 @@ def get_distribution_codename():
         try:
             output = sh.lsb_release("-c")  # pylint: disable=E1101
             _, codename = output.split("\t")
-        except sh.CommandNotFound as e:
+        except sh.CommandNotFound:
             pass
     codename = codename.strip()
     return codename

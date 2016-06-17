@@ -79,7 +79,7 @@ def get_hotfix_version(version):
     parts = version.split('.')
     major_version = int(parts[0])
     minor_version = int(parts[1])
-    if (len(parts) > 2):
+    if len(parts) > 2:
         hotfix_version = int(parts[2])
     else:
         hotfix_version = 0
@@ -190,7 +190,7 @@ class GitManager(object):
                 lines.append("* " + commit.message.split("\n")[0])
         lines.append("\n")
 
-        f = open(changelog, 'rw+')
+        f = open(changelog, 'r+')
         lines.extend(f.readlines())
         f.seek(0)
         f.truncate(0)
@@ -267,7 +267,7 @@ class GitManager(object):
         new_develop_version = "%snext" % version
 
         upstream_branch = self.get_branch("hotfix", version)
-        debian_branch = self.get_debian_branch("hotfix", version)
+        # debian_branch = self.get_debian_branch("hotfix", version)
 
         # create hotfix branch
         repo.git.branch(upstream_branch, upstream)

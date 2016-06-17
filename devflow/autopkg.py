@@ -146,7 +146,7 @@ def main():
     parser.add_option("--color",
                       dest="color_output",
                       default="auto",
-                      help="Enable/disable colored output. Default mode is" +
+                      help="Enable/disable colored output. Default mode is"
                            " auto, available options are yes/no")
 
     (options, args) = parser.parse_args()
@@ -156,10 +156,7 @@ def main():
     elif options.color_output == "no":
         use_colors = False
     else:
-        if sys.stdout.isatty():
-            use_colors = True
-        else:
-            use_colors = False
+        use_colors = sys.stdout.isatty()
 
     red = lambda x: x
     green = lambda x: x
@@ -186,8 +183,8 @@ def main():
     except IndexError:
         mode = utils.get_build_mode()
     if mode not in AVAILABLE_MODES:
-        raise ValueError(red("Invalid argument! Mode must be one: %s"
-                         % ", ".join(AVAILABLE_MODES)))
+        raise ValueError(red("Invalid argument! Mode must be one: %s" %
+                             ", ".join(AVAILABLE_MODES)))
 
     # Load the repository
     original_repo = utils.get_repository()
@@ -240,8 +237,8 @@ def main():
 
     # Create the debian branch
     repo.git.branch(debian_branch, origin_debian)
-    print_green("Created branch '%s' to track '%s'" % (debian_branch,
-                origin_debian))
+    print_green("Created branch '%s' to track '%s'" %
+                (debian_branch, origin_debian))
 
     # Go to debian branch
     repo.git.checkout(debian_branch)

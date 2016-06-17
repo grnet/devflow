@@ -58,7 +58,7 @@ BRANCH_TYPES = {
     "master": branch_type(True, True, False,
                           "^%s$" % VERSION_RE, "debian"),
     "hotfix": branch_type(True, True, True,
-                          "^(?P<bverstr>^%s\.[1-9][0-9]*)(%s)*$" %
+                          r"^(?P<bverstr>^%s\.[1-9][0-9]*)(%s)*$" %
                           (VERSION_RE, RC_RE),
                           "debian")}
 BASE_VERSION_FILE = "version"

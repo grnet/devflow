@@ -394,11 +394,10 @@ def update_version():
             version_templates = list(version_templates)
 
         if len(version_filenames) != len(version_templates):
-            raise RuntimeError("devflow.conf contains '%s' version files and"
-                               " '%s' version templates. The number of version"
-                               " files and templates must match."
-                               % (len(version_filenames),
-                                   len(version_templates)))
+            raise RuntimeError(
+                "devflow.conf contains '%s' version files and '%s' version "
+                "templates. The number of version files and templates must "
+                "match." % (len(version_filenames), len(version_templates)))
 
         v_files_templates = zip(version_filenames, version_templates)
         for (vfilename, vtemplate) in v_files_templates:
@@ -441,7 +440,7 @@ def _bump_version(new_version, v):
     sys.stdout.write("Updating version file %s from version '%s' to '%s'\n"
                      % (version_file, old_version, new_version))
 
-    f = open(version_file, 'rw+')
+    f = open(version_file, 'r+')
     lines = f.readlines()
     for i in range(0, len(lines)):
         if not lines[i].startswith("#"):
