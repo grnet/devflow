@@ -35,10 +35,22 @@
 
 import os
 import sys
+import subprocess
 
 from git import GitCommandError
 from optparse import OptionParser
-from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
+from sh import mktemp, cd, rm  # pylint: disable=E0611
+from functools import partial
+try:
+    from sh import git_dch as gbp_dch  # pylint: disable=E0611
+    gbp_buildpackage = ['git-buildpackage']
+except ImportError:
+    # In newer versions of git-buildpackage the executables have changed.
+    # Instead of having various git-* executables, there is only a gbp one,
+    # which expects the command (dch, buildpackage, etc) as the first argument.
+    from sh import gbp  # pylint: disable=E0611
+    gbp_dch = partial(gbp, 'dch')
+    gbp_buildpackage = ['gbp', 'buildpackage']
 
 from devflow import versioning
 from devflow import utils
@@ -270,7 +282,7 @@ def main():
     repo.git.tag(upstream_tag, branch)
 
     # Update changelog
-    dch = git_dch("--debian-branch=%s" % debian_branch,
+    dch = gbp_dch("--debian-branch=%s" % debian_branch,
                   "--git-author",
                   "--ignore-regex=\".*\"",
                   "--multimaint-merge",
@@ -294,7 +306,7 @@ def main():
     f.close()
 
     if mode == "release":
-        call("vim debian/changelog")
+        subprocess.check_call(['editor', "debian/changelog"])
 
     # Add changelog to INDEX
     repo.git.add("debian/changelog")
@@ -320,19 +332,25 @@ def main():
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     os.environ["DEB_DEVFLOW_VERSION"] = python_version
-    build_cmd = "git-buildpackage --git-export-dir=%s"\
-                " --git-upstream-branch=%s --git-debian-branch=%s"\
-                " --git-export=INDEX --git-ignore-new -sa"\
-                " --source-option=--auto-commit"\
-                " --git-upstream-tag=%s"\
-                % (build_dir, branch, debian_branch, upstream_tag)
+
+    args = list(gbp_buildpackage)
+    args.extend(["--git-export-dir=%s" % build_dir,
+                 "--git-upstream-branch=%s" % branch,
+                 "--git-debian-branch=%s" % debian_branch,
+                 "--git-export=INDEX",
+                 "--git-ignore-new",
+                 "-sa",
+                 " --source-option=--auto-commit",
+                 " --git-upstream-tag=%s" % upstream_tag])
+
     if options.source_only:
-        build_cmd += " -S"
+        args.append("-S")
     if not options.sign:
-        build_cmd += " -uc -us"
+        args.extend(["-uc", "-us"])
     elif options.keyid:
-        build_cmd += " -k\"'%s'\"" % options.keyid
-    call(build_cmd)
+        args.append("-k\"'%s'\"" % options.keyid)
+
+    subprocess.check_call(args)
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
@@ -370,12 +388,6 @@ def main():
 def create_temp_directory(suffix):
     create_dir_cmd = mktemp("-d", "/tmp/" + suffix + "-XXXXX")
     return create_dir_cmd.stdout.strip()
-
-
-def call(cmd):
-    rc = os.system(cmd)
-    if rc:
-        raise RuntimeError("Command '%s' failed!" % cmd)
 
 
 if __name__ == "__main__":

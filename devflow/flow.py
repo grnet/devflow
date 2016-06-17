@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 
 import logging
 logging.basicConfig()
@@ -9,7 +10,6 @@ from argparse import ArgumentParser
 os.environ["GIT_PYTHON_TRACE"] = "full"
 from devflow import utils, versioning, RC_RE
 from devflow.version import __version__
-from devflow.autopkg import call
 from devflow.ui import query_action, query_user, query_yes_no
 from functools import wraps, partial
 from contextlib import contextmanager
@@ -51,7 +51,7 @@ def conflicts():
             f = open(tmpbashrc, 'w')
             f.write("source $HOME/.bashrc ; export PS1=(Conflict)\"$PS1\"")
             f.close()
-            call('bash --rcfile %s' % tmpbashrc)
+            subprocess.check_call(['bash', '--rcfile', tmpbashrc])
             os.unlink(tmpbashrc)
         else:
             raise
@@ -197,10 +197,7 @@ class GitManager(object):
         f.writelines(lines)
         f.close()
 
-        editor = os.getenv('EDITOR')
-        if not editor:
-            editor = 'vim'
-        call("%s %s" % (editor, changelog))
+        subprocess.check_call(['editor', changelog])
         repo.git.add(changelog)
         repo.git.commit(m="Update changelog")
         print "Updated changelog on branch %s" % branch
