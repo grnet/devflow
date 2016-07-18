@@ -54,16 +54,16 @@ PACKAGES_ROOT = '.'
 PACKAGES = find_packages(PACKAGES_ROOT)
 
 # Package meta
-CLASSIFIERS = []
+CLASSIFIERS = [
+    'Environment :: Console',
+    'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 2 :: Only',
+    'Topic :: Software Development',
+    'Topic :: Software Development :: Build Tools']
 
 # Package requirements
 INSTALL_REQUIRES = ['gitpython>=0.3.2RC1', 'sh', 'configobj', 'ansicolors']
-
-# Provided as an attribute, so you can append to these instead
-# of replicating them:
-standard_exclude = ["*.py", "*.pyc", "*$py.class", "*~", ".*", "*.bak"]
-standard_exclude_directories = [".*", "CVS", "_darcs", "./build", "./dist",
-                                "EGG-INFO", "*.egg-info"]
 
 setup(
     name='devflow',
