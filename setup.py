@@ -1,4 +1,4 @@
-# Copyright 2012, 2013 GRNET S.A. All rights reserved.
+# Copyright 2012-2016 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -33,25 +33,15 @@
 #
 import os
 from setuptools import setup, find_packages
-
-try:
-    from devflow.version import __version__
-except ImportError:
-    # Bootstrap devflow
-    from devflow.versioning import update_version
-    update_version()
-    from devflow.version import __version__
+from imp import load_source
 
 HERE = os.path.abspath(os.path.normpath(os.path.dirname(__file__)))
+VERSION = os.path.join(HERE, 'devflow', 'version.py')
 
 # Package info
-VERSION = __version__
 README = open(os.path.join(HERE, 'README.md')).read()
 CHANGES = open(os.path.join(HERE, 'Changelog')).read()
 SHORT_DESCRIPTION = 'A set of tools to ease versioning and use of git flow.'
-
-PACKAGES_ROOT = '.'
-PACKAGES = find_packages(PACKAGES_ROOT)
 
 # Package meta
 CLASSIFIERS = [
@@ -67,7 +57,7 @@ INSTALL_REQUIRES = ['gitpython>=0.3.2RC1', 'sh', 'configobj', 'ansicolors']
 
 setup(
     name='devflow',
-    version=VERSION,
+    version=getattr(load_source('version', VERSION), "__version__"),
     license='BSD',
     url='http://www.synnefo.org/',
     description=SHORT_DESCRIPTION,
