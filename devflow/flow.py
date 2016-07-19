@@ -58,34 +58,39 @@ def conflicts():
 
 
 def get_release_version(develop_version):
-    version = develop_version.rstrip('next')
-    parts = version.split('.')
-    major_version = int(parts[0])
-    minor_version = int(parts[1])
-    # return str(major_version) + '.' + str(minor_version+1) + 'rc1'
-    return str(major_version) + '.' + str(minor_version+1)
+    '''Given a development version it will return the release version'''
+
+    # Old version scheme
+    if 'next' in develop_version:
+        version = develop_version.rstrip('next')
+        parts = version.split('.')
+        major = int(parts[0])
+        minor = int(parts[1])
+        return "%d.%d" % (major, minor+1)
+
+    # New version may or may not contain dev:
+    #   0.19 is fine, same as 0.19.dev or 0.19dev
+    return develop_version.rstrip('.dev').rstrip('dev')
 
 
 def get_develop_version_from_release(release_version):
+    '''Given a release version it will return the next develop version'''
     # version = re.sub('rc[0-9]+$', '', release_version)
     version = release_version
     parts = version.split('.')
-    major_version = int(parts[0])
-    minor_version = int(parts[1])
-    return str(major_version) + '.' + str(minor_version+1) + 'next'
+    major = int(parts[0])
+    minor = int(parts[1])
+    return "%d.%ddev" % (major, minor+1)
 
 
 def get_hotfix_version(version):
+    """Given a version it will return the next hotfix version"""
     parts = version.split('.')
-    major_version = int(parts[0])
-    minor_version = int(parts[1])
-    if len(parts) > 2:
-        hotfix_version = int(parts[2])
-    else:
-        hotfix_version = 0
+    major = int(parts[0])
+    minor = int(parts[1])
+    hotfix = int(parts[2]) if len(parts) > 2 else 0
 
-    return str(major_version) + '.' + str(minor_version) + '.' \
-        + str(hotfix_version+1)
+    return "%d.%d.%d" % (major, minor, hotfix+1)
 
 
 class GitManager(object):
@@ -267,7 +272,7 @@ class GitManager(object):
         new_develop_version = "%snext" % version
 
         upstream_branch = self.get_branch("hotfix", version)
-        # debian_branch = self.get_debian_branch("hotfix", version)
+        debian_branch = self.get_debian_branch("hotfix", version)
 
         # create hotfix branch
         repo.git.branch(upstream_branch, upstream)
