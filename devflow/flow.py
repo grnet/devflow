@@ -105,6 +105,10 @@ class GitManager(object):
         self.new_tags = []
         # self.repo.git.pull("origin")
 
+        # Check if version is obsolete
+        versioning.check_obsolete_version()
+
+
     def get_branch(self, mode, version):
         if mode not in ["release", "hotfix"]:
             raise ValueError("Unknown mode: %s" % mode)

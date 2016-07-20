@@ -386,6 +386,7 @@ def update_version():
         raise RuntimeError("Can not compute version outside of a git"
                            " repository.")
     b = get_base_version(v)
+    check_obsolete_version(b)
     mode = utils.get_build_mode()
     version = python_version(b, v, mode)
     debian_version_ = debian_version_from_python_version(version)
@@ -439,6 +440,7 @@ def update_version():
 def bump_version_main():
     try:
         version = sys.argv[1]
+        check_obsolete_version(version)
         bump_version(version)
     except IndexError:
         sys.stdout.write("Give me a version %s!\n")
@@ -479,9 +481,31 @@ def bump_version(new_version):
     _bump_version(new_version, v)
 
 
+def check_obsolete_version(version=None):
+    """Check if the version is postfixed with 'next' which is deprecated.
+    Output a warning"""
+
+    if version is None:
+        v = utils.get_vcs_info()
+        version = get_base_version(v)
+
+    if not version.endswith('next'):
+        return
+
+    new_version = version.rstrip('next').split('.')
+    new_version[-1] = str(int(new_version[-1]) + 1)
+    new_version = ".".join(new_version)
+    sys.stderr.write(
+        "Warning: Version %s contains postfix 'next' which is obsolete.\n"
+        "Warning: Replace it to the forthcoming release version (e.g. %s).\n"
+        "Warning: Support for postfix next will be removed in the future.\n" %
+        (version, new_version))
+
+
 def main():
     v = utils.get_vcs_info()
     b = get_base_version(v)
+    check_obsolete_version(b)
     mode = utils.get_build_mode()
 
     try:
