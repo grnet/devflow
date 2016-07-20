@@ -127,25 +127,30 @@ def python_version(base_version, vcs_info, mode):
     b) a version is generated either in 'release' or in 'snapshot' mode
     c) the choice of mode depends on the branch, see following table.
 
-    A python version is of the form A_NNN,
+    The older python version format was of the form A_NNN,
     where A: X.Y.Z{,next,rcW} and NNN: a revision number for the commit,
     as returned by vcs_info().
 
+    The new python version complies with PEP 440 and is of the form:
+        X.Y.Z{,rcW}.devNNN
+    were X.Y.Z denote the upcoming release.
+
     For every combination of branch and mode, releases are numbered as follows:
 
-    BRANCH:  /  MODE: snapshot        release
-    --------          ------------------------------
-    feature           0.14next_150    N/A
-    develop           0.14next_151    N/A
-    release           0.14rc2_249     0.14rc2
-    master            N/A             0.14
-    hotfix            0.14.1rc6_121   0.14.1rc6
+    BRANCH:  /  MODE: old_snapshot    new_snapshot      release
+    --------          ---------------------------------------
+    feature           0.14next_150    0.15.dev150       N/A
+    develop           0.14next_151    0.15.dev151       N/A
+    release           0.14rc2_249     0.14rc2.dev249    0.14rc2
+    master            N/A             N/A               0.14
+    hotfix            0.14.1rc6_121   0.14.1rc6.dev121  0.14.1rc6
                       N/A             0.14.1
 
-    The suffix 'next' in a version name is used to denote the upcoming version,
-    the one being under development in the develop and release branches.
+    In the older form, the suffix 'next' in a version name used to denote the
+    upcoming version, the one being under development in the develop branch.
     Version '0.14next' is the version following 0.14, and only lives on the
-    develop and feature branches.
+    develop and feature branches. In the newer form we can denote the upcoming
+    version either as 0.15dev or simply 0.15.
 
     The suffix 'rc' is used to denote release candidates. 'rc' versions live
     only in release and hotfix branches.
@@ -240,11 +245,15 @@ def python_version(base_version, vcs_info, mode):
         raise ValueError("Invalid mode '%s' in branch type '%s'" %
                          (mode, btypestr))
 
-    if snap:
-        v = "%s_%d_%s" % (base_version, vcs_info.revno, vcs_info.revid)
-    else:
-        v = base_version
-    return v
+    if 'next' in base_version:
+        # This is the old version format and we are in snapshot mode, otherwise
+        # validate_version() would have failed.
+        return "%s_%d_%s" % (base_version, vcs_info.revno, vcs_info.revid)
+    elif snap:
+        return "%s.dev%d+df.%s" % (base_version.rstrip('.dev').rstrip('dev'),
+                                   vcs_info.revno,
+                                   vcs_info.revid.replace('_', '.'))
+    return base_version
 
 
 def debian_version_from_python_version(pyver):
@@ -316,7 +325,13 @@ def debian_version_from_python_version(pyver):
     True
 
     """
-    version = pyver.replace("_", "~").replace("rc", "~rc")
+
+    if "_" in pyver:
+        # This is the old format
+        version = pyver.replace("_", "~").replace("rc", "~rc")
+    else:
+        version = pyver.replace(
+            ".dev", "~dev").replace("dev", "~dev").replace("rc", "~rc")
     codename = utils.get_distribution_codename()
     minor = str(get_revision(version, codename))
     return version + "-" + minor + "~" + codename
@@ -371,6 +386,7 @@ def update_version():
         raise RuntimeError("Can not compute version outside of a git"
                            " repository.")
     b = get_base_version(v)
+    check_obsolete_version(b)
     mode = utils.get_build_mode()
     version = python_version(b, v, mode)
     debian_version_ = debian_version_from_python_version(version)
@@ -424,6 +440,7 @@ def update_version():
 def bump_version_main():
     try:
         version = sys.argv[1]
+        check_obsolete_version(version)
         bump_version(version)
     except IndexError:
         sys.stdout.write("Give me a version %s!\n")
@@ -464,9 +481,31 @@ def bump_version(new_version):
     _bump_version(new_version, v)
 
 
+def check_obsolete_version(version=None):
+    """Check if the version is postfixed with 'next' which is deprecated.
+    Output a warning"""
+
+    if version is None:
+        v = utils.get_vcs_info()
+        version = get_base_version(v)
+
+    if not version.endswith('next'):
+        return
+
+    new_version = version.rstrip('next').split('.')
+    new_version[-1] = str(int(new_version[-1]) + 1)
+    new_version = ".".join(new_version)
+    sys.stderr.write(
+        "Warning: Version %s contains postfix 'next' which is obsolete.\n"
+        "Warning: Replace it to the forthcoming release version (e.g. %s).\n"
+        "Warning: Support for postfix next will be removed in the future.\n" %
+        (version, new_version))
+
+
 def main():
     v = utils.get_vcs_info()
     b = get_base_version(v)
+    check_obsolete_version(b)
     mode = utils.get_build_mode()
 
     try:
