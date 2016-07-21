@@ -45,6 +45,8 @@ import os
 import re
 import sys
 import itertools
+import random
+import string
 
 from distutils import log  # pylint: disable=E0611
 
@@ -330,8 +332,15 @@ def debian_version_from_python_version(pyver):
         # This is the old format
         version = pyver.replace("_", "~").replace("rc", "~rc")
     else:
+        # Create a random string that will help as during replacing
+        rand = ''.join(
+            random.choice(string.ascii_uppercase) for _ in range(16))
+        # Replace '.dev' or 'dev' with ~dev. This is needed to make the Debian
+        # develop version less than the non-develop one. Same thing for the rc
+        # one.
         version = pyver.replace(
-            ".dev", "~dev").replace("dev", "~dev").replace("rc", "~rc")
+            ".dev", rand).replace("dev", "~dev").replace(rand, '~dev').replace(
+            "rc", "~rc")
     codename = utils.get_distribution_codename()
     minor = str(get_revision(version, codename))
     return version + "-" + minor + "~" + codename
