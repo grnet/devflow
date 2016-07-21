@@ -1,4 +1,11 @@
-2016-07-20, v02016-07-20, v0.13
+2016-07-21, v02016-07-20, v0.13rc3
+	* Fix bug in git-buildpkg call were arguments contained extra spaces
+	* Fix extra ~ bug in python->debian version translation
+
+2016-07-20, v02016-07-20, v0.13rc2
+	* Bump new version because 0.13rc1 was registered in pypi
+
+2016-07-20, v02016-07-20, v0.13rc1
 	* Use PEP 440 compatible versions
 	* Add support for newer git-buildpackage
 
