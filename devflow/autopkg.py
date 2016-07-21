@@ -337,8 +337,8 @@ def main():
                  "--git-export=INDEX",
                  "--git-ignore-new",
                  "-sa",
-                 " --source-option=--auto-commit",
-                 " --git-upstream-tag=%s" % upstream_tag])
+                 "--source-option=--auto-commit",
+                 "--git-upstream-tag=%s" % upstream_tag])
 
     if options.source_only:
         args.append("-S")
