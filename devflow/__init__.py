@@ -1,4 +1,4 @@
-# Copyright 2012, 2013 GRNET S.A. All rights reserved.
+# Copyright 2012-2016 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -44,13 +44,15 @@ from collections import namedtuple
 branch_type = namedtuple("branch_type", ["builds_snapshot", "builds_release",
                                          "versioned", "allowed_version_re",
                                          "debian_branch"])
-VERSION_RE = "[0-9]+\.[0-9]+(\.[0-9]+)*"  # pylint: disable=W1401
-RC_RE = "rc[1-9][0-9]*"
+VERSION_RE = r'[0-9]+\.[0-9]+(\.[0-9]+)*'
+RC_RE = r'rc[1-9][0-9]*'
 
 BRANCH_TYPES = {
-    "feature": branch_type(True, False, False, "^%snext$" % VERSION_RE,
+    "feature": branch_type(True, False, False,
+                           "^%s(next|\.?dev)?$" % VERSION_RE,
                            "debian-develop"),
-    "develop": branch_type(True, False, False, "^%snext$" % VERSION_RE,
+    "develop": branch_type(True, False, False,
+                           "^%s(next|\.?dev)?$" % VERSION_RE,
                            "debian-develop"),
     "release": branch_type(True, True, True,
                            "^(?P<bverstr>%s)(%s)+$" % (VERSION_RE, RC_RE),
@@ -58,7 +60,7 @@ BRANCH_TYPES = {
     "master": branch_type(True, True, False,
                           "^%s$" % VERSION_RE, "debian"),
     "hotfix": branch_type(True, True, True,
-                          "^(?P<bverstr>^%s\.[1-9][0-9]*)(%s)*$" %\
-                            (VERSION_RE, RC_RE),
+                          r"^(?P<bverstr>^%s\.[1-9][0-9]*)(%s)*$" %
+                          (VERSION_RE, RC_RE),
                           "debian")}
 BASE_VERSION_FILE = "version"

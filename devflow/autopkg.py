@@ -1,4 +1,4 @@
-# Copyright 2012-2014 GRNET S.A. All rights reserved.
+# Copyright 2012-2016 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -31,14 +31,26 @@
 # interpreted as representing official policies, either expressed
 # or implied, of GRNET S.A.
 
-"""Helper script for automatic build of debian packages."""
+"""Helper script for automatic build of Debian packages."""
 
 import os
 import sys
+import subprocess
 
 from git import GitCommandError
 from optparse import OptionParser
-from sh import mktemp, cd, rm, git_dch  # pylint: disable=E0611
+from sh import mktemp, cd, rm  # pylint: disable=E0611
+from functools import partial
+try:
+    from sh import git_dch as gbp_dch  # pylint: disable=E0611
+    gbp_buildpackage = ['git-buildpackage']
+except ImportError:
+    # In newer versions of git-buildpackage the executables have changed.
+    # Instead of having various git-* executables, there is only a gbp one,
+    # which expects the command (dch, buildpackage, etc) as the first argument.
+    from sh import gbp  # pylint: disable=E0611
+    gbp_dch = partial(gbp, 'dch')
+    gbp_buildpackage = ['gbp', 'buildpackage']
 
 from devflow import versioning
 from devflow import utils
@@ -47,9 +59,9 @@ from devflow import BRANCH_TYPES
 
 AVAILABLE_MODES = ["release", "snapshot"]
 
-DESCRIPTION = """Tool for automatical build of debian packages.
+DESCRIPTION = """Tool for automatic build of Debian packages.
 
-%(prog)s is a helper script for automatic build of debian packages from
+%(prog)s is a helper script for automatic build of Debian packages from
 repositories that follow the `git flow` development model
 <http://nvie.com/posts/a-successful-git-branching-model/>.
 
@@ -60,11 +72,11 @@ following steps:
     * Compute the version of the new package and update the python
       version files
     * Create a new entry in debian/changelog, using `git-dch`
-    * Create the debian packages, using `git-buildpackage`
+    * Create the Debian packages, using `git-buildpackage`
     * Tag the appropriate branches if in `release` mode
 
-%(prog)s will work with the packages that are declared in `autopkg.conf`
-file, which must exist in the toplevel directory of the git repository.
+%(prog)s will work with the packages that are declared in `devflow.conf'
+file, which must exist in the top-level directory of the git repository.
 
 """
 
@@ -90,7 +102,7 @@ def main():
     parser.add_option("-b", "--build-dir",
                       dest="build_dir",
                       default=None,
-                      help="Directory to store created pacakges")
+                      help="Directory to store created packages")
     parser.add_option("-r", "--repo-dir",
                       dest="repo_dir",
                       default=None,
@@ -134,7 +146,7 @@ def main():
     parser.add_option("--color",
                       dest="color_output",
                       default="auto",
-                      help="Enable/disable colored output. Default mode is" +
+                      help="Enable/disable colored output. Default mode is"
                            " auto, available options are yes/no")
 
     (options, args) = parser.parse_args()
@@ -144,10 +156,7 @@ def main():
     elif options.color_output == "no":
         use_colors = False
     else:
-        if sys.stdout.isatty():
-            use_colors = True
-        else:
-            use_colors = False
+        use_colors = sys.stdout.isatty()
 
     red = lambda x: x
     green = lambda x: x
@@ -174,8 +183,8 @@ def main():
     except IndexError:
         mode = utils.get_build_mode()
     if mode not in AVAILABLE_MODES:
-        raise ValueError(red("Invalid argument! Mode must be one: %s"
-                         % ", ".join(AVAILABLE_MODES)))
+        raise ValueError(red("Invalid argument! Mode must be one: %s" %
+                             ", ".join(AVAILABLE_MODES)))
 
     # Load the repository
     original_repo = utils.get_repository()
@@ -228,8 +237,8 @@ def main():
 
     # Create the debian branch
     repo.git.branch(debian_branch, origin_debian)
-    print_green("Created branch '%s' to track '%s'" % (debian_branch,
-                origin_debian))
+    print_green("Created branch '%s' to track '%s'" %
+                (debian_branch, origin_debian))
 
     # Go to debian branch
     repo.git.checkout(debian_branch)
@@ -270,7 +279,7 @@ def main():
     repo.git.tag(upstream_tag, branch)
 
     # Update changelog
-    dch = git_dch("--debian-branch=%s" % debian_branch,
+    dch = gbp_dch("--debian-branch=%s" % debian_branch,
                   "--git-author",
                   "--ignore-regex=\".*\"",
                   "--multimaint-merge",
@@ -294,7 +303,7 @@ def main():
     f.close()
 
     if mode == "release":
-        call("vim debian/changelog")
+        subprocess.check_call(['editor', "debian/changelog"])
 
     # Add changelog to INDEX
     repo.git.add("debian/changelog")
@@ -320,19 +329,25 @@ def main():
     # Export version info to debuilg environment
     os.environ["DEB_DEVFLOW_DEBIAN_VERSION"] = debian_version
     os.environ["DEB_DEVFLOW_VERSION"] = python_version
-    build_cmd = "git-buildpackage --git-export-dir=%s"\
-                " --git-upstream-branch=%s --git-debian-branch=%s"\
-                " --git-export=INDEX --git-ignore-new -sa"\
-                " --source-option=--auto-commit"\
-                " --git-upstream-tag=%s"\
-                % (build_dir, branch, debian_branch, upstream_tag)
+
+    args = list(gbp_buildpackage)
+    args.extend(["--git-export-dir=%s" % build_dir,
+                 "--git-upstream-branch=%s" % branch,
+                 "--git-debian-branch=%s" % debian_branch,
+                 "--git-export=INDEX",
+                 "--git-ignore-new",
+                 "-sa",
+                 "--source-option=--auto-commit",
+                 "--git-upstream-tag=%s" % upstream_tag])
+
     if options.source_only:
-        build_cmd += " -S"
+        args.append("-S")
     if not options.sign:
-        build_cmd += " -uc -us"
+        args.extend(["-uc", "-us"])
     elif options.keyid:
-        build_cmd += " -k\"'%s'\"" % options.keyid
-    call(build_cmd)
+        args.append("-k\"'%s'\"" % options.keyid)
+
+    subprocess.check_call(args)
 
     # Remove cloned repo
     if mode != 'release' and not options.keep_repo:
@@ -370,12 +385,6 @@ def main():
 def create_temp_directory(suffix):
     create_dir_cmd = mktemp("-d", "/tmp/" + suffix + "-XXXXX")
     return create_dir_cmd.stdout.strip()
-
-
-def call(cmd):
-    rc = os.system(cmd)
-    if rc:
-        raise RuntimeError("Command '%s' failed!" % cmd)
 
 
 if __name__ == "__main__":

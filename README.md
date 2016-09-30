@@ -15,7 +15,7 @@ Quickstart
 ```
 import os
 
-from devflow.version import get_python_version
+from devflow.versioning import get_python_version
 os.environ["DEVFLOW_BUILD_MODE"] = "snapshot"
 print "This commit's Python version is", get_python_version()
 ```

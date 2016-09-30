@@ -1,4 +1,4 @@
-# Copyright (C) 2013 GRNET S.A. All rights reserved.
+# Copyright (C) 2013-2016 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -48,7 +48,7 @@ def get_repository(path=None):
     try:
         return git.Repo(path)
     except git.InvalidGitRepositoryError:
-        msg = "Cound not retrivie git information. Directory '%s'"\
+        msg = "Cound not retrieve git information. Directory '%s'"\
               " is not a git repository!" % path
         raise RuntimeError(msg)
 
@@ -58,6 +58,9 @@ def get_config(path=None):
     if path is None:
         toplevel = get_vcs_info().toplevel
         path = os.path.join(toplevel, "devflow.conf")
+
+    if not os.path.isfile(path):
+        raise RuntimeError("Config file: '%s' does not exist!" % path)
 
     config = ConfigObj(path)
     return config
@@ -99,7 +102,7 @@ def get_commit_id(commit, current_branch):
     """Return the commit ID
 
     If the commit is a 'merge' commit, and one of the parents is a
-    debian branch we return a compination of the parents commits.
+    debian branch we return a combination of the parents commits.
 
     """
     def short_id(commit):
@@ -236,7 +239,7 @@ def get_distribution_codename():
         try:
             output = sh.lsb_release("-c")  # pylint: disable=E1101
             _, codename = output.split("\t")
-        except sh.CommandNotFound as e:
+        except sh.CommandNotFound:
             pass
     codename = codename.strip()
     return codename

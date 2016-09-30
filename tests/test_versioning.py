@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012, 2013 GRNET S.A. All rights reserved.
+# Copyright 2012-2016 GRNET S.A. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or
 # without modification, are permitted provided that the following
@@ -109,6 +109,11 @@ class TestVersionFunctions(unittest.TestCase):
             ("0.14_120", "<", "0.14"),
             ("0.14", "<", "0.14next_20"),
             ("0.14next_20", "<", "0.14next"),
+            # New format
+            ("0.14", ">", "0.14dev"),
+            ("0.14rc1", ">", "0.14rc1.dev10"),
+            ("0.14.2rc1", "<", "0.14.2"),
+            ("0.14dev0", "<", "0.14.dev10"),
         )
 
     def test_python_versions(self):
