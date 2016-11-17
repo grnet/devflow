@@ -1,14 +1,16 @@
 Source: devflow
 Section: python
 Priority: optional
-Maintainer: Synnefo development team <synnefo-devel@googlegroups.com>
+Maintainer: Nikos Skalkotos <skalkoto@grnet.gr>
 Build-Depends: debhelper (>= 8), python-all (>= 2.5)
-Standards-Version: 3.9.2
+Standards-Version: 3.9.4
 X-Python-Version: >= 2.6
-Homepage: https://code.grnet.gr/projects/gitflow
+Homepage: https://github.com/grnet/devflow
 
 Package: devflow
 Architecture: all
-Depends: ${python:Depends}, python-git (>= 0.3.2~RC1)
+Depends: ${python:Depends}, ${misc:Depends}, python-git (>= 0.3.2~RC1)
 Recommends: git-buildpackage
-Description: A set of tools to ease versioning and use of git flow.
+Description: set of tools to ease versioning and use of git flow
+ devflow is a set of Python tools to manage versions, help implement the git
+ flow development process, and build Python and Debian packages.
