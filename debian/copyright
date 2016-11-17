@@ -4,10 +4,10 @@ Upstream-Contact: GRNET development team <synnefo@lists.grnet.gr>
 Source: https://code.grnet.gr/projects/synnefo
 
 Files: *
-Copyright: Copyright (C) 2011, 2012 GRNET S.A.
-Licence: BSD-2-clause
+Copyright: Copyright (C) 2011-2016 GRNET S.A.
+License: BSD-2-clause
 
-Licence: BSD-2-clause
+License: BSD-2-clause
  Redistribution and use in source and binary forms, with or
  without modification, are permitted provided that the following
  conditions are met:
