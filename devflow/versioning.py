@@ -452,7 +452,7 @@ def bump_version_main():
         check_obsolete_version(version)
         bump_version(version)
     except IndexError:
-        sys.stdout.write("Give me a version %s!\n")
+        sys.stdout.write("Give me a version!\n")
         sys.stdout.write("usage: %s version\n" % sys.argv[0])
 
 
